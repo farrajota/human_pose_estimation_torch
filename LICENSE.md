@@ -1,3 +1,8 @@
+Large portions of this code were built off:
+https://github.com/anewell/pose-hg-train
+Copyright (c) 2016, University of Michigan
+
+For the rest of the code:
 Copyright (c) 2016, Miguel Farrajota
 All rights reserved.
 

@@ -2,8 +2,6 @@
     Load model into memory.
 ]]
 
-require 'nn'
-
 -- Continuing an experiment where it left off
 local model
 opt.iniEpoch = 1
@@ -26,26 +24,38 @@ else
     print('==> Creating model from file: models/' .. opt.netType .. '.lua')
     -- load models
     local models_list = paths.dofile('models/init.lua')
-    model = models_list[opt.netType](opt)
+    model = models_list[opt.netType]()
 end
 
 -- define criterion
 local criterion
-if string.match('MSE', string.upper(opt.crit)) then
-  criterion = nn.MSECriterion()
-elseif string.match('smoothl1', string.lower(opt.crit)) then
-  criterion = nn.SmoothL1Criterion()
+if opt.nOutputs > 1 then
+   criterion = nn.ParallelCriterion()
+   for i=1, opt.nOutputs do
+      if string.match('MSE', string.upper(opt.crit)) then
+         criterion:add(nn.MSECriterion())
+      elseif string.match('smoothl1', string.lower(opt.crit)) then
+         criterion:add(nn.SmoothL1Criterion())
+      end
+   end
+else
+   if string.match('MSE', string.upper(opt.crit)) then
+      criterion = nn.MSECriterion()
+   elseif string.match('smoothl1', string.lower(opt.crit)) then
+      criterion = nn.SmoothL1Criterion()
+   end
 end
 
+
 -- convert to GPU or CPU
-if opt.GPU > 1 then
+if opt.GPU >= 1 then
    print('Running on GPU: [' .. opt.nGPU .. ']')
    require 'cutorch'
    require 'cunn'
    model:cuda()
    criterion:cuda()
   
-   -- check if cudnn is available
+   -- require cudnn if available
    if pcall(require, 'cudnn') then
      cudnn.convert(net, cudnn):cuda()
      cudnn.benchmark = true
@@ -54,10 +64,12 @@ if opt.GPU > 1 then
      end
      print('Network has', #net:findModules'cudnn.SpatialConvolution', 'cudnn convolutions')
    end
+   opt.dataType = 'torch.CudaTensor'
 else
-  print('Running on CPU')
-  model:float()
-  criterion:float()
+   print('Running on CPU')
+   model:float()
+   criterion:float()
+   opt.dataType = 'torch.FloatTensor'
 end
 
 ----------------------------------

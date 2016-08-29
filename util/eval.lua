@@ -109,3 +109,13 @@ function displayPCK(dists, part_idx, label, title, show_key)
     gnuplot.raw('set yrange [0:1]')
     gnuplot.plot(unpack(plot_args))
 end
+
+
+function accuracy(output,label)
+    local jntIdxs = {mpii={1,2,3,4,5,6,11,12,15,16},flic={2,3,5,6,7,8}}
+    if opt.task == 'pose-int' then
+        return heatmapAccuracy(output[#output],label[#output],nil,jntIdxs[opt.dataset])
+    else
+        return heatmapAccuracy(output,label,nil,jntIdxs[opt.dataset])
+    end
+end

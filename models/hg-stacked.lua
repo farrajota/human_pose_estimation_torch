@@ -7,7 +7,7 @@ local function hourglass(n, numIn, numOut, inp)
     local up4 = Residual(256,numOut)(up2)
 
     -- Lower branch
-    local pool = nnlib.SpatialMaxPooling(2,2,2,2)(inp)
+    local pool = nn.SpatialMaxPooling(2,2,2,2)(inp)
     local low1 = Residual(numIn,256)(pool)
     local low2 = Residual(256,256)(low1)
     local low5 = Residual(256,256)(low2)
@@ -26,19 +26,19 @@ end
 
 local function lin(numIn,numOut,inp)
     -- Apply 1x1 convolution, no stride, no padding
-    local l_ = nnlib.SpatialConvolution(numIn,numOut,1,1,1,1,0,0)(inp)
-    return nnlib.ReLU(true)(nn.SpatialBatchNormalization(numOut)(l_))
+    local l_ = nn.SpatialConvolution(numIn,numOut,1,1,1,1,0,0)(inp)
+    return nn.ReLU(true)(nn.SpatialBatchNormalization(numOut)(l_))
 end
 
-function createModel()
+local function createModel()
 
     local inp = nn.Identity()()
 
     -- Initial processing of the image
-    local cnv1_ = nnlib.SpatialConvolution(3,64,7,7,2,2,3,3)(inp)           -- 128
-    local cnv1 = nnlib.ReLU(true)(nn.SpatialBatchNormalization(64)(cnv1_))
+    local cnv1_ = nn.SpatialConvolution(3,64,7,7,2,2,3,3)(inp)           -- 128
+    local cnv1 = nn.ReLU(true)(nn.SpatialBatchNormalization(64)(cnv1_))
     local r1 = Residual(64,128)(cnv1)
-    local pool = nnlib.SpatialMaxPooling(2,2,2,2)(r1)                       -- 64
+    local pool = nn.SpatialMaxPooling(2,2,2,2)(r1)                       -- 64
     local r4 = Residual(128,128)(pool)
     local r5 = Residual(128,128)(r4)
     local r6 = Residual(128,256)(r5)
@@ -51,12 +51,12 @@ function createModel()
     local l2 = lin(512,256,l1)
 
     -- First predicted heatmaps
-    local out1 = nnlib.SpatialConvolution(256,outputDim[1][1],1,1,1,1,0,0)(l2)
-    local out1_ = nnlib.SpatialConvolution(outputDim[1][1],256+128,1,1,1,1,0,0)(out1)
+    local out1 = nn.SpatialConvolution(256,outputDim[1][1],1,1,1,1,0,0)(l2)
+    local out1_ = nn.SpatialConvolution(outputDim[1][1],256+128,1,1,1,1,0,0)(out1)
 
     -- Concatenate with previous linear features
     local cat1 = nn.JoinTable(2)({l2,pool})
-    local cat1_ = nnlib.SpatialConvolution(256+128,256+128,1,1,1,1,0,0)(cat1)
+    local cat1_ = nn.SpatialConvolution(256+128,256+128,1,1,1,1,0,0)(cat1)
     local int1 = nn.CAddTable()({cat1_,out1_})
 
     -- Second hourglass
@@ -67,11 +67,14 @@ function createModel()
     local l4 = lin(512,512,l3)
 
     -- Output heatmaps
-    local out2 = nnlib.SpatialConvolution(512,outputDim[2][1],1,1,1,1,0,0)(l4)
+    local out2 = nn.SpatialConvolution(512,outputDim[2][1],1,1,1,1,0,0)(l4)
 
     -- Final model
     local model = nn.gModule({inp}, {out1,out2})
 
     return model
-
 end
+
+------------------------
+
+return createModel

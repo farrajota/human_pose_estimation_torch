@@ -5,7 +5,7 @@ local function hourglass(n, f, inp)
     local up1 = Residual(f,f)(inp)
 
     -- Lower branch
-    local pool = nnlib.SpatialMaxPooling(2,2,2,2)(inp)
+    local pool = nn.SpatialMaxPooling(2,2,2,2)(inp)
     local low1 = Residual(f,f)(pool)
     local low2
 
@@ -21,19 +21,19 @@ end
 
 local function lin(numIn,numOut,inp)
     -- Apply 1x1 convolution, stride 1, no padding
-    local l = nnlib.SpatialConvolution(numIn,numOut,1,1,1,1,0,0)(inp)
-    return nnlib.ReLU(true)(nn.SpatialBatchNormalization(numOut)(l))
+    local l = nn.SpatialConvolution(numIn,numOut,1,1,1,1,0,0)(inp)
+    return nn.ReLU(true)(nn.SpatialBatchNormalization(numOut)(l))
 end
 
-function createModel()
+local function createModel()
 
     local inp = nn.Identity()()
 
     -- Initial processing of the image
-    local cnv1_ = nnlib.SpatialConvolution(3,64,7,7,2,2,3,3)(inp)           -- 128
-    local cnv1 = nnlib.ReLU(true)(nn.SpatialBatchNormalization(64)(cnv1_))
+    local cnv1_ = nn.SpatialConvolution(3,64,7,7,2,2,3,3)(inp)           -- 128
+    local cnv1 = nn.ReLU(true)(nn.SpatialBatchNormalization(64)(cnv1_))
     local r1 = Residual(64,128)(cnv1)
-    local pool = nnlib.SpatialMaxPooling(2,2,2,2)(r1)                       -- 64
+    local pool = nn.SpatialMaxPooling(2,2,2,2)(r1)                       -- 64
     local r4 = Residual(128,128)(pool)
     local r5 = Residual(128,opt.nFeats)(r4)
 
@@ -47,7 +47,7 @@ function createModel()
         local ll = lin(opt.nFeats,opt.nFeats,hg)
 
         -- Predicted heatmaps
-        local tmpOut = nnlib.SpatialConvolution(opt.nFeats,outputDim[1][1],1,1,1,1,0,0)(ll)
+        local tmpOut = nn.SpatialConvolution(opt.nFeats,outputDim[1][1],1,1,1,1,0,0)(ll)
         table.insert(out,tmpOut)
 
         if i < opt.nStack then inter = nn.CAddTable()({inter, hg}) end
@@ -57,5 +57,8 @@ function createModel()
     local model = nn.gModule({inp}, out)
 
     return model
-
 end
+
+-------------------------
+
+return createModel
