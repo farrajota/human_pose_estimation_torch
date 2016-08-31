@@ -2,6 +2,10 @@
     Load model into memory.
 ]]
 
+--------------------------------------------------------------------------------
+-- Load model
+--------------------------------------------------------------------------------
+
 -- Continuing an experiment where it left off
 local model
 opt.iniEpoch = 1
@@ -27,7 +31,10 @@ else
     model = models_list[opt.netType]()
 end
 
--- define criterion
+
+--------------------------------------------------------------------------------
+-- Define criterion
+--------------------------------------------------------------------------------
 local criterion
 if opt.nOutputs > 1 then
    criterion = nn.ParallelCriterion()
@@ -47,7 +54,10 @@ else
 end
 
 
--- convert to GPU or CPU
+--------------------------------------------------------------------------------
+-- Convert to GPU or CPU
+--------------------------------------------------------------------------------
+
 if opt.GPU >= 1 then
    print('Running on GPU: [' .. opt.nGPU .. ']')
    require 'cutorch'
@@ -57,12 +67,12 @@ if opt.GPU >= 1 then
   
    -- require cudnn if available
    if pcall(require, 'cudnn') then
-     cudnn.convert(net, cudnn):cuda()
+     cudnn.convert(model, cudnn):cuda()
      cudnn.benchmark = true
      if opt.cudnn_deterministic then
         model:apply(function(m) if m.setMode then m:setMode(1,1,1) end end)
      end
-     print('Network has', #net:findModules'cudnn.SpatialConvolution', 'cudnn convolutions')
+     print('Network has', #model:findModules'cudnn.SpatialConvolution', 'cudnn convolutions')
    end
    opt.dataType = 'torch.CudaTensor'
 else
@@ -72,6 +82,6 @@ else
    opt.dataType = 'torch.FloatTensor'
 end
 
-----------------------------------
+------------------------------------------------------------------------------------------------------
 
 return model, criterion

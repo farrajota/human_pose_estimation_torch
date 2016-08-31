@@ -5,7 +5,7 @@
 
 local ffi=require 'ffi'
 
-------------------------------------
+------------------------------------------------------------------------------------------------------------
 
 local function MSRinit(model)
    for k,v in pairs(model:findModules('nn.SpatialConvolution')) do
@@ -15,7 +15,7 @@ local function MSRinit(model)
    end
 end
 
-------------------------------------
+------------------------------------------------------------------------------------------------------------
 
 local function FCinit(model)
    for k,v in pairs(model:findModules'nn.Linear') do
@@ -23,7 +23,7 @@ local function FCinit(model)
    end
 end
 
-------------------------------------
+------------------------------------------------------------------------------------------------------------
 
 local function DisableBias(model)
    for i,v in ipairs(model:findModules'nn.SpatialConvolution') do
@@ -32,7 +32,7 @@ local function DisableBias(model)
    end
 end
 
-------------------------------------
+------------------------------------------------------------------------------------------------------------
 
 local function makeDataParallelTable(model, nGPU)
    if nGPU > 1 then
@@ -42,9 +42,11 @@ local function makeDataParallelTable(model, nGPU)
       local dpt = nn.DataParallelTable(1, true, true)
          :add(model, gpus)
          :threads(function()
-            local cudnn = require 'cudnn'
-            require 'scalegrad'
-            cudnn.fastest, cudnn.benchmark = fastest, benchmark
+            require 'nngraph'
+            if pcall(require,'cudnn') then
+               local cudnn = require 'cudnn'
+               cudnn.fastest, cudnn.benchmark = fastest, benchmark
+            end
          end)
       dpt.gradInput = nil
 
@@ -53,37 +55,19 @@ local function makeDataParallelTable(model, nGPU)
    return model
 end
 
-------------------------------------
-
-local function makeDataParallel(model, nGPU)
-   if nGPU > 1 then
-      print('converting module to nn.DataParallelTable')
-      assert(nGPU <= cutorch.getDeviceCount(), 'number of GPUs less than nGPU specified')
-      local model_single = model
-      model = nn.DataParallelTable(1)
-      for i=1, nGPU do
-         cutorch.setDevice(i)
-         model:add(model_single:clone():cuda(), i)
-      end
-   end
-   cutorch.setDevice(opt.GPU)
-
-   return model
-end
-
-------------------------------------
+------------------------------------------------------------------------------------------------------------
 
 local function cleanDPT(module)
    -- This assumes this DPT was created by the function above: all the
    -- module.modules are clones of the same network on different GPUs
    -- hence we only need to keep one when saving the model to the disk.
-   local newDPT = nn.DataParallelTable(1)
+   local newDPT = nn.DataParallelTable(1, true, true)
    cutorch.setDevice(opt.GPU)
    newDPT:add(module:get(1), opt.GPU)
    return newDPT
 end
 
-------------------------------------
+------------------------------------------------------------------------------------------------------------
 
 local function saveDataParallel(filename, model)
    if torch.type(model) == 'nn.DataParallelTable' then
@@ -103,19 +87,19 @@ local function saveDataParallel(filename, model)
    end
 end
 
-------------------------------------
+------------------------------------------------------------------------------------------------------------
 
 local function loadDataParallel(filename, nGPU)
-   if opt.backend == 'cudnn' then
-      require 'cudnn'
-   end
+   --if opt.backend == 'cudnn' then
+   --   require 'cudnn'
+   --end
    local model = torch.load(filename)
    if torch.type(model) == 'nn.DataParallelTable' then
-      return makeDataParallel(model:get(1):float(), nGPU)
+      return makeDataParallelTable(model:get(1):float(), nGPU)
    elseif torch.type(model) == 'nn.Sequential' or torch.type(model) == 'nn.gModule' then
       for i,module in ipairs(model.modules) do
          if torch.type(module) == 'nn.DataParallelTable' then
-            model.modules[i] = makeDataParallel(module:get(1):float(), nGPU)
+            model.modules[i] = makeDataParallelTable(module:get(1):float(), nGPU)
          end
       end
       return model
@@ -124,15 +108,14 @@ local function loadDataParallel(filename, nGPU)
    end
 end
 
-------------------------------------
+------------------------------------------------------------------------------------------------------------
 
 return {
    MSRinit = MSRinit,
    FCinit = FCinit,
    DisableBias = DisableBias,
 
-   makeDataParallelTable = makeDataParallelTable, 
-   makeDataParallel = makeDataParallel,
+   makeDataParallelTable = makeDataParallelTable,
    saveDataParallel = saveDataParallel, 
    loadDataParallel = loadDataParallel
 }

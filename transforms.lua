@@ -1,3 +1,7 @@
+--[[
+    Image transformation library. It contains common image transformations like crop, rotation, flip, color augmentation, etc.
+]]
+
 require 'image'
 
 local M = {}

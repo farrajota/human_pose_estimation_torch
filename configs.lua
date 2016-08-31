@@ -1,3 +1,7 @@
+--[[
+    Loads necessary libraries and files for the train script.
+]]
+
 -------------------------------------------------------------------------------
 -- Load necessary libraries and files
 -------------------------------------------------------------------------------
@@ -11,6 +15,9 @@ require 'nngraph'
 require 'hdf5'
 require 'string'
 require 'image'
+require 'cutorch'
+require 'cunn'
+require 'cudnn'
 
 paths.dofile('util/img.lua')
 paths.dofile('util/eval.lua')
@@ -21,6 +28,7 @@ torch.setdefaulttensortype('torch.FloatTensor')
 
 -- Project directory
 paths.dofile('projectdir.lua')
+
 
 -------------------------------------------------------------------------------
 -- Process command line options
@@ -95,9 +103,11 @@ if not opt then
 
 end
 
+
 -------------------------------------------------------------------------------
 -- Load model + criterion
 -------------------------------------------------------------------------------
+
 if not outputDim then
   if opt.dataset == 'mpii' then
     outputDim = {16, opt.outputRes, opt.outputRes}
@@ -126,32 +136,44 @@ else
   outputDim = newDim
 end
 
+local net, crit = paths.dofile('model.lua') -- Load model
+criterion = crit
+model = nn.Sequential()
 
-model, criterion = paths.dofile('model.lua') -- Load model
 
+--------------------------------------------------------------------------------
 -- Optimize networks memory usage
+--------------------------------------------------------------------------------
+
+-- optimize network's memory allocations
 if opt.optimize then
-   print('Optimize (reduce) network\'s memory usage...')
    -- for memory optimizations and graph generation
+   print('Optimize (reduce) network\'s memory usage...')
    local optnet = require 'optnet'
-   local graphgen = require 'optnet.graphgen'
   
    local sample_input = torch.randn(2,3,opt.inputRes,opt.inputRes):float()
-   optnet.optimizeMemory(model, sample_input, {inplace = false, mode = 'training'})
+   if opt.GPU>=1 then sample_input=sample_input:cuda() end
+   optnet.optimizeMemory(net, sample_input, {inplace = false, mode = 'training'})
    print('Done.')
 end
 
 -- Generate networks graph 
 if opt.genGraph > 0 then
-  graph.dot(model.fg, 'pose network', paths.concat(opt.save, 'network_graph'))
+  graph.dot(net.fg, 'pose network', paths.concat(opt.save, 'network_graph'))
   local sys = require 'sys'
   if #sys.execute('command -v inkscape') > 0 then
     os.execute(('inkscape -z -e %s  -h 30000 %s'):format(paths.concat(opt.save, 'network_graph.png'),  paths.concat(opt.save, 'network_graph.svg')))
   end
 end
 
--- parallelize the model into multiple GPUs
-if opt.nGPU > 1 then
-  
+-- Use multiple gpus
+if opt.GPU >= 1 and opt.nGPU > 1 then
+  local utils = paths.dofile('util/utils.lua')
+  model:add(utils.makeDataParallelTable(net, opt.nGPU)) -- defined in util.lua
+else
+  model:add(net)
 end
 
+local function cast(x) return x:type(opt.data_type) end
+
+cast(model)

@@ -6,9 +6,11 @@ require 'torch'
 require 'paths'
 require 'string'
 
+
 --------------------------------------------------------------------------------
 -- Load configs (data, model, criterion, optimState)
 --------------------------------------------------------------------------------
+
 paths.dofile('configs.lua')
 local lopt = opt
 
@@ -23,9 +25,11 @@ local nBatchesTest = opt.validIters
 -- convert modules to a specified tensor type
 local function cast(x) return x:type(opt.dataType) end
 
+
 --------------------------------------------------------------------------------
 -- Setup data generator
 --------------------------------------------------------------------------------
+
 local function getIterator(mode)
    return tnt.ParallelDatasetIterator{
       nthread = opt.nThreads,
@@ -41,7 +45,7 @@ local function getIterator(mode)
          
          local nIters = (mode == 'train' and opt.trainIters) or (mode == 'valid' and opt.validIters)
          local batchSize = (mode == 'train' and opt.trainBatch) or (mode == 'valid' and opt.validBatch)
-         nIters = 4
+         nIters = 10
          -- setup dataset iterator
          local list_dataset = tnt.ListDataset{  -- replace this by your own dataset
             list = torch.range(1, nIters):long(),
@@ -61,9 +65,11 @@ local function getIterator(mode)
    }
 end
 
+
 --------------------------------------------------------------------------------
 -- Setup torchnet engine/meters/loggers
 --------------------------------------------------------------------------------
+
 local meters = {
    train_err = tnt.AverageValueMeter(),
    train_accu = tnt.AverageValueMeter(),
@@ -91,23 +97,18 @@ loggers.full_train:setNames{'Train Loss'}
 loggers.valid.showPlot = false
 loggers.train.showPlot = false
 loggers.full_train.showPlot = false
-------------
+
 
 -- set up training engine:
 local engine = tnt.OptimEngine()
 
 engine.hooks.onStartEpoch = function(state)
-   print('\n***********************')
+   print('\n**********************************************')
    print(('Starting Train epoch %d/%d'):format(state.epoch+1, state.maxepoch))
-   print('***********************')
+   print('**********************************************')
    state.config = optimStateFn(state.epoch+1)
 end
 
---[[
-engine.hooks.onForward = function(state)
-  print(#state.network.output)
-end
---]]
 
 engine.hooks.onForwardCriterion = function(state)
    if state.training then
@@ -164,9 +165,9 @@ engine.hooks.onEndEpoch = function(state)
    loggers.train:add{tr_loss, tr_accuracy}
    meters:reset()
    state.t = 0
-   print('\n***********************')
+   print('\n**********************************************')
    print(('Test network (epoch = %d/%d)'):format(state.epoch, state.maxepoch))
-   print('***********************')
+   print('**********************************************')
    engine:test{
       network   = model,
       iterator  = getIterator('valid'),
@@ -181,6 +182,7 @@ engine.hooks.onEndEpoch = function(state)
    state.t = 0
 end
 
+
 --------------------------------------------------------------------------------
 -- Train the model
 --------------------------------------------------------------------------------
@@ -194,11 +196,13 @@ engine:train{
    maxepoch = opt.nEpochs
 }
 
+
 --------------------------------------------------------------------------------
 -- Save model
 --------------------------------------------------------------------------------
-model:clearState()
-torch.save(paths.concat(opt.save,'final_model.t7'), model)
+print('==> Saving final model to disk: ' .. paths.concat(opt.save,'final_model.t7'))
+local utils = paths.dofile('util/utils.lua')
+utils.saveDataParallel(paths.concat(opt.save,'final_model.t7'), model:clearState())
 torch.save(paths.concat(opt.save,'final_optimState.t7'), optimStateFn(opt,nEpochs))
 
 print('==> Script complete.')

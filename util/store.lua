@@ -5,7 +5,7 @@
 
 local utils = paths.dofile('utils.lua')
 
-------------------------------------
+------------------------------------------------------------------------------------------------------------
 
 local function reOptimizeNetwork()
    local optnet = require 'optnet'
@@ -14,13 +14,14 @@ local function reOptimizeNetwork()
    optnet.optimizeMemory(model, sample_input, {inplace = false, mode = 'training'})
 end
 
-------------------------------------
+------------------------------------------------------------------------------------------------------------
 
 local function store(model, optimState, epoch, flag, flag_optimize)
    local flag_optimize = flag_optimize or false
    if flag then 
       print('Saving model snapshot to: ' .. paths.concat(opt.save,'model_' .. epoch ..'.t7'))
       utils.saveDataParallel(paths.concat(opt.save, 'model_' .. epoch .. '.t7'), model:clearState())
+      torch.save(paths.concat(opt.save, 'model_' .. epoch .. '.t7'), model:clearState())
       
       torch.save(paths.concat(opt.save,'optim_' .. epoch ..'.t7'), optimstate)
       torch.save(paths.concat(opt.save,'meters_' .. epoch ..'.t7'), meters)
@@ -32,6 +33,7 @@ local function store(model, optimState, epoch, flag, flag_optimize)
    else
       print('Saving model snapshot to: ' .. paths.concat(opt.save,'model.t7'))
       utils.saveDataParallel(paths.concat(opt.save, 'model.t7'), model:clearState())
+      torch.save(paths.concat(opt.save, 'model.t7'), model:clearState())
       
       torch.save(paths.concat(opt.save,'optim.t7'), optimstate)
       torch.save(paths.concat(opt.save,'meters.t7'),meters)
@@ -43,7 +45,7 @@ local function store(model, optimState, epoch, flag, flag_optimize)
    end
 end
 
-------------------------------------  
+------------------------------------------------------------------------------------------------------------  
 
 function storeModel(model, optimState, epoch, opt)
    -- store model snapshot

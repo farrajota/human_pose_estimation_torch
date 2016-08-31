@@ -1,5 +1,5 @@
 --[[
-    Predict body positions and evaluate trained networks on the MPII or FLIC dataset wrt to their performance.
+    Demo for the pose detector. (available datasets: flic, mpii)
 ]]
 
 
@@ -19,10 +19,11 @@ require 'cutorch'
 require 'cunn'
 require 'cudnn'
 
+paths.dofile('projectdir.lua') -- Project directory
 paths.dofile('util/img.lua')
 paths.dofile('util/eval.lua')
+paths.dofile('util/draw.lua')
 paths.dofile('util/utils.lua') -- for loading the networks
-paths.dofile('projectdir.lua') -- Project directory
 
 torch.setdefaulttensortype('torch.FloatTensor')
 
@@ -41,11 +42,9 @@ cmd:option('-expID',       'hg-stacked-multigpu', 'Experiment ID')
 cmd:option('-dataset',        'mpii', 'Dataset choice: mpii | flic')
 cmd:option('-dataDir',  projectDir .. '/data', 'Data directory')
 cmd:option('-expDir',   projectDir .. '/exp',  'Experiments directory')
-cmd:option('-reprocess',   false,  'Utilize existing predictions from the model\'s folder.')
 cmd:option('-manualSeed',      2, 'Manually set RNG seed')
 cmd:option('-GPU',             1, 'Default preferred GPU (-1 = use CPU)')
 cmd:option('-nGPU',            1, 'Number of GPUs to use by default')
-cmd:option('-threshold',     0.5, 'PCKh threshold (default 0.5)')
 cmd:text()
 cmd:text(' ---------- Model options --------------------------------------')
 cmd:text()
@@ -54,7 +53,7 @@ cmd:option('-optimize',         true, 'Optimize network memory usage.')
 cmd:text()
 cmd:text(' ---------- Display options --------------------------------------')
 cmd:text()
-cmd:option('-plotSave',      true, 'Save plot to file (true/false)')
+cmd:option('-plotSave',      false, 'Save plot to file (true/false)')
 cmd:text(' ---------- Data options ---------------------------------------')
 cmd:text()
 cmd:text()
@@ -134,7 +133,6 @@ end
 
 local utils = paths.dofile('util/utils.lua')
 local model = utils.loadDataParallel((paths.concat(opt.expDir, opt.expID, opt.loadModel)), opt.nGPU) -- load model into 'N' GPUs
---local model = torch.load(paths.concat(opt.expDir, opt.expID, opt.loadModel))
 
 -- convert modules to a specified tensor type
 local function cast(x) return x:type(opt.dataType) end  
@@ -154,102 +152,55 @@ end
 
 
 --------------------------------------------------------------------------------
--- Process dataset
+-- Process examples
 --------------------------------------------------------------------------------
 
 print('\n==============================================')
 print(('Selected dataset: %s'):format(opt.dataset))
 print('==============================================\n')
 
-local labels = {'valid', 'test'}
+local labels = {'test'}
 
 for k, set in pairs(labels) do
-    -- check if files already exist, and if the reprocess flag is false
-    if opt.reprocess or not paths.filep(paths.concat(opt.save, 'preds-' .. set.. '.h5')) then
-        print(('Processing set: *%s*'):format(set))
-        -- load annotations
-        local a = loadAnnotations(set)
-        -- define index range of the number of available samples
-        local idxs = torch.range(1,a.nsamples)
-        local nsamples = idxs:nElement()
-        -- Displays a convenient progress bar
-        xlua.progress(0,nsamples)
-        local preds = torch.Tensor(nsamples,16,2)
+    print(('Processing set: *%s*'):format(set))
+    -- load annotations
+    local a = loadAnnotations(set)
+    -- define index range of the number of available samples
+    local idxs = torch.randperm(a.nsamples):sub(1,10)
+    local nsamples = idxs:nElement()
+    -- Displays a convenient progress bar
+    xlua.progress(0,nsamples)
+    local preds = torch.Tensor(nsamples,16,2)
+    
+    -- alloc memory in the gpu for faster data transfer
+    local input = torch.Tensor(1,3,opt.inputRes, opt.inputRes); input=cast(input)
+    for i = 1,nsamples do
+        -- Set up input image
+        local im = image.load(paths.concat(projectDir, 'data', opt.dataset, 'images/' .. a['images'][idxs[i]]))
+        local center = a['center'][idxs[i]]
+        local scale = a['scale'][idxs[i]]
+        local inp = crop(im, center, scale, 0, 256)
         
-        -- alloc memory in the gpu for faster data transfer
-        local input = torch.Tensor(1,3,opt.inputRes, opt.inputRes); input=cast(input)
-        for i = 1,nsamples do
-            -- Set up input image
-            local im = image.load(paths.concat(projectDir, 'data', opt.dataset, 'images/' .. a['images'][idxs[i]]))
-            local center = a['center'][idxs[i]]
-            local scale = a['scale'][idxs[i]]
-            local inp = crop(im, center, scale, 0, 256)
-            
-            -- Get network output
-            input[1]:copy(inp) -- copy data from CPU to GPU
-            local out = model:forward(input)
-            local hm = out[2][1]:float()
-            hm[hm:lt(0)] = 0
-            
-            -- Get predictions (hm and img refer to the coordinate space)
-            local preds_hm, preds_img = getPredsBenchmark(hm, center, scale)
-            preds[i]:copy(preds_img)
-            
-            xlua.progress(i,nsamples)
-            
-            collectgarbage()
-        end
+        -- Get network output
+        input[1]:copy(inp) -- copy data from CPU to GPU
+        local out = model:forward(input)
+        local hm = out[2][1]:float()
+        hm[hm:lt(0)] = 0
+          
+        -- Get predictions (hm and img refer to the coordinate space)
+        local preds_hm, preds_img = getPredsBenchmark(hm, center, scale)
         
-        -- store predictions to file
-        local predFile = hdf5.open(paths.concat(opt.save, 'preds-' .. set.. '.h5'), 'w')
-        predFile:write('preds', preds)
-        predFile:close()
+        -- Display the result
+        preds_hm:mul(4) -- Change to input scale
+        local dispImg = drawOutput(inp, hm, preds_hm[1])
+        image.display{image=dispImg}
+        --sys.sleep(3)
+        if opt.plotSave then image.save(paths.concat(opt.save, 'plot' .. a['images'][idxs[i]]), dispImg) end
         
-        -- compute/display pck
+        xlua.progress(i,nsamples)
         
-        print('Done.')
+        collectgarbage()
     end
 end
 
-
---------------------------------------------------------------------------------
--- Evaluation
---------------------------------------------------------------------------------
-
--- Calculate distances given each set of predictions
-local dists = {}
-for i=1, #labels do
-    local a = loadAnnotations(labels[i])
-    local predFile = hdf5.open(paths.concat(opt.save, 'preds-' .. labels[i] .. '.h5'),'r')
-    local preds = predFile:read('preds'):all():double()
-    table.insert(dists,calcDists(preds, a.part, a.normalize))
-end
-
-require 'gnuplot'
-gnuplot.raw('set bmargin 1')
-gnuplot.raw('set lmargin 3.2')
-gnuplot.raw('set rmargin 2')    
-gnuplot.raw('set multiplot layout 2,3 title "MPII Validation Set Performance (PCKh)"')
-gnuplot.raw('set xtics font ",6"')
-gnuplot.raw('set ytics font ",6"')
-print('-----------------------------------')
-displayPCK(dists, {9,10}, labels, 'Head')
-print('-----------------------------------')
-displayPCK(dists, {2,5}, labels, 'Knee')
-print('-----------------------------------')
-displayPCK(dists, {1,6}, labels, 'Ankle')
-print('-----------------------------------')
-gnuplot.raw('set tmargin 2.5')
-gnuplot.raw('set bmargin 1.5')
-displayPCK(dists, {13,14}, labels, 'Shoulder')
-print('-----------------------------------')
-displayPCK(dists, {12,15}, labels, 'Elbow')
-print('-----------------------------------')
-displayPCK(dists, {11,16}, labels, 'Wrist', true)
-print('-----------------------------------')
-gnuplot.raw('unset multiplot')
-
-gnuplot.pngfigure(paths.concat(opt.save, 'Validation_Set_Performance_PCKh.png')) 
-gnuplot.plotflush()
-
-print('Benchmark script complete.')
+print('Demo script complete.')

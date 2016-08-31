@@ -1,15 +1,20 @@
+--[[
+    Options configurations for the train script.
+]]
+
 local function Parse(arg)
     local cmd = torch.CmdLine()
     cmd:text()
     cmd:text(' ---------- General options ------------------------------------')
     cmd:text()
-    cmd:option('-expID',       'default', 'Experiment ID')
-    cmd:option('-dataset',        'flic', 'Dataset choice: mpii | flic')
+    --cmd:option('-expID',       'default-multigpu', 'Experiment ID')
+    cmd:option('-expID',       'hg-stacked-multigpu', 'Experiment ID')
+    cmd:option('-dataset',        'mpii', 'Dataset choice: mpii | flic')
     cmd:option('-dataDir',  projectDir .. '/data', 'Data directory')
     cmd:option('-expDir',   projectDir .. '/exp',  'Experiments directory')
     cmd:option('-manualSeed',          2, 'Manually set RNG seed')
-    cmd:option('-GPU',                 -1, 'Default preferred GPU, if set to -1: no GPU')
-    cmd:option('-nGPU',                1, 'Number of GPUs to use by default')
+    cmd:option('-GPU',                 1, 'Default preferred GPU, if set to -1: no GPU')
+    cmd:option('-nGPU',                2, 'Number of GPUs to use by default')
     cmd:option('-finalPredictions',    0, 'Generate a final set of predictions at the end of training (default no, set to 1 for yes)')
     cmd:option('-nThreads',            2, 'Number of data loading threads')
     cmd:text()
@@ -38,9 +43,9 @@ local function Parse(arg)
     cmd:text()
     cmd:text(' ---------- Training options -----------------------------------')
     cmd:text()
-    cmd:option('-nEpochs',           100, 'Total number of epochs to run')
+    cmd:option('-nEpochs',           10, 'Total number of epochs to run')
     cmd:option('-trainIters',       4000, 'Number of train iterations per epoch')
-    cmd:option('-trainBatch',          6, 'Mini-batch size')
+    cmd:option('-trainBatch',          4, 'Mini-batch size')
     cmd:option('-validIters',       2958, 'Number of validation iterations per epoch')
     cmd:option('-validBatch',          1, 'Mini-batch size for validation')
     cmd:text()
@@ -57,10 +62,16 @@ local function Parse(arg)
     opt.expDir = paths.concat(opt.expDir, opt.dataset)
     opt.dataDir = paths.concat(opt.dataDir, opt.dataset)
     opt.save = paths.concat(opt.expDir, opt.expID)
+    
+    if not (opt.validBatch >= opt.nGPU) then
+      print('Converting validBatch from ' .. opt.validBatch .. ' to ' .. opt.nGPU)
+      opt.validBatch = opt.nGPU
+    end
+    
     return opt
 end
 
----------------------------------
+---------------------------------------------------------------------------------------------------
 
 return {
   parse = Parse

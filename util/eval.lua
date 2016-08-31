@@ -1,6 +1,7 @@
--------------------------------------------------------------------------------
--- Helpful functions for evaluation
--------------------------------------------------------------------------------
+--[[
+    Helpful functions for evaluation.
+]]
+
 
 function calcDists(preds, label, normalize)
     local dists = torch.Tensor(preds:size(2), preds:size(1))
@@ -17,6 +18,8 @@ function calcDists(preds, label, normalize)
     return dists
 end
 
+------------------------------------------------------------------------------------------------------------
+
 function getPreds(hm)
     assert(hm:size():size() == 4, 'Input must be 4-D tensor')
     local max, idx = torch.max(hm:view(hm:size(1), hm:size(2), hm:size(3) * hm:size(4)), 3)
@@ -26,15 +29,41 @@ function getPreds(hm)
     return preds
 end
 
+------------------------------------------------------------------------------------------------------------
+
+function getPredsBenchmark(hms, center, scale)
+    if hms:size():size() == 3 then hms = hms:view(1, hms:size(1), hms:size(2), hms:size(3)) end
+
+    -- Get locations of maximum activations
+    local max, idx = torch.max(hms:view(hms:size(1), hms:size(2), hms:size(3) * hms:size(4)), 3)
+    local preds = torch.repeatTensor(idx, 1, 1, 2):float()
+    preds[{{}, {}, 1}]:apply(function(x) return (x - 1) % hms:size(4) + 1 end)
+    preds[{{}, {}, 2}]:add(-1):div(hms:size(3)):floor():add(.5)
+
+    -- Get transformed coordinates
+    local preds_tf = torch.zeros(preds:size())
+    for i = 1,hms:size(1) do        -- Number of samples
+        for j = 1,hms:size(2) do    -- Number of output heatmaps for one sample
+            preds_tf[i][j] = transform(preds[i][j],center,scale,0,hms:size(3),true)
+        end
+    end
+
+    return preds, preds_tf
+end
+
+------------------------------------------------------------------------------------------------------------
+
 function distAccuracy(dists, thr)
     -- Return percentage below threshold while ignoring values with a -1
     if not thr then thr = .5 end
-    if torch.ne(dists,-1):sum() > 0 then
+    if torch.ne(dists,-1):sum () > 0 then
         return dists:le(thr):eq(dists:ne(-1)):sum() / dists:ne(-1):sum()
     else
         return -1
     end
 end
+
+------------------------------------------------------------------------------------------------------------
 
 function heatmapAccuracy(output, label, thr, idxs)
     -- Calculate accuracy according to PCK, but uses ground truth heatmap rather than x,y locations
@@ -48,21 +77,29 @@ function heatmapAccuracy(output, label, thr, idxs)
 
     if not idxs then
         for i = 1,dists:size(1) do
-            acc[i+1] = distAccuracy(dists[i])
-    	    if acc[i+1] >= 0 then avgAcc = avgAcc + acc[i+1]
-            else badIdxCount = badIdxCount + 1 end
+            acc[i+1] = distAccuracy(dists[i], thr)
+            if acc[i+1] >= 0 then 
+                avgAcc = avgAcc + acc[i+1]
+            else 
+                badIdxCount = badIdxCount + 1 
+            end
         end
         acc[1] = avgAcc / (dists:size(1) - badIdxCount)
     else
         for i = 1,#idxs do
-            acc[i+1] = distAccuracy(dists[idxs[i]])
-	    if acc[i+1] >= 0 then avgAcc = avgAcc + acc[i+1]
-            else badIdxCount = badIdxCount + 1 end
+            acc[i+1] = distAccuracy(dists[idxs[i]], thr)
+            if acc[i+1] >= 0 then 
+                avgAcc = avgAcc + acc[i+1]
+            else 
+                badIdxCount = badIdxCount + 1 
+            end
         end
         acc[1] = avgAcc / (#idxs - badIdxCount)
     end
     return unpack(acc)
 end
+
+------------------------------------------------------------------------------------------------------------
 
 function basicAccuracy(output, label, thr)
     -- Calculate basic accuracy
@@ -75,6 +112,8 @@ function basicAccuracy(output, label, thr)
 
     return eql:sum()/output:numel()
 end
+
+------------------------------------------------------------------------------------------------------------
 
 function displayPCK(dists, part_idx, label, title, show_key)
     -- Generate standard PCK plot
@@ -110,6 +149,7 @@ function displayPCK(dists, part_idx, label, title, show_key)
     gnuplot.plot(unpack(plot_args))
 end
 
+------------------------------------------------------------------------------------------------------------
 
 function accuracy(output,label)
     local jntIdxs = {mpii={1,2,3,4,5,6,11,12,15,16},flic={2,3,5,6,7,8}}
