@@ -13,7 +13,7 @@ local function hourglass(n, f, inp)
     else low2 = Residual(f,f)(low1) end
 
     local low3 = Residual(f,f)(low2)
-    local up2 = nn.SpatialFullConvolution(f,f,4,4,2,2,1,1)(low3)
+    local up2 = nn.SpatialFullConvolution(f,f,4,4,2,2,1,1)(low3) -- replaced upsampling
 
     -- Bring two branches together
     return nn.CAddTable()({up1,up2})

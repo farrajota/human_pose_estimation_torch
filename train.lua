@@ -45,7 +45,7 @@ local function getIterator(mode)
          
          local nIters = (mode == 'train' and opt.trainIters) or (mode == 'valid' and opt.validIters)
          local batchSize = (mode == 'train' and opt.trainBatch) or (mode == 'valid' and opt.validBatch)
-         nIters = 10
+         --nIters = 10
          -- setup dataset iterator
          local list_dataset = tnt.ListDataset{  -- replace this by your own dataset
             list = torch.range(1, nIters):long(),
@@ -92,7 +92,7 @@ local loggers = {
 
 loggers.valid:setNames{'Valid Loss', 'Valid acc.'}
 loggers.train:setNames{'Train Loss', 'Train acc.'}
-loggers.full_train:setNames{'Train Loss'}
+loggers.full_train:setNames{'Train Loss', 'Train accuracy'}
 
 loggers.valid.showPlot = false
 loggers.train.showPlot = false
@@ -120,7 +120,7 @@ engine.hooks.onForwardCriterion = function(state)
       meters.train_err:add(state.criterion.output)
       meters.train_accu:add(acc)
       
-      loggers.full_train:add{state.criterion.output}
+      loggers.full_train:add{state.criterion.output, acc}
    else
       xlua.progress(state.t, nBatchesTest)
       
@@ -138,7 +138,7 @@ local targets = cast(torch.Tensor())
 if opt.nOutputs > 1 then
   local ntargets = {}
   for i=1, opt.nOutputs do
-    table.insert(ntargets,  cast(torch.Tensor()))
+    table.insert(ntargets, cast(torch.Tensor()))
   end
   targets = ntargets
 end
@@ -204,5 +204,8 @@ print('==> Saving final model to disk: ' .. paths.concat(opt.save,'final_model.t
 local utils = paths.dofile('util/utils.lua')
 utils.saveDataParallel(paths.concat(opt.save,'final_model.t7'), model:clearState())
 torch.save(paths.concat(opt.save,'final_optimState.t7'), optimStateFn(opt,nEpochs))
+loggers.valid:style{'+-', '+-'}; loggers.valid:plot()
+loggers.train:style{'+-', '+-'}; loggers.train:plot()
+loggers.full_train:style{'-', '-'}; loggers.full_train:plot()
 
 print('==> Script complete.')

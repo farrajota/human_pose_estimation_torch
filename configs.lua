@@ -134,6 +134,7 @@ else
     table.insert(newDim, outputDim)
   end
   outputDim = newDim
+  opt.nOutputs = opt.nStack
 end
 
 local net, crit = paths.dofile('model.lua') -- Load model

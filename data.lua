@@ -15,7 +15,6 @@ require 'image'
 
 paths.dofile('util/img.lua')
 paths.dofile('util/eval.lua')
-paths.dofile('util/Logger.lua')
 paths.dofile('util/utils.lua')
 
 -------------------------------------------------------------------------------
@@ -60,7 +59,6 @@ for _,l in ipairs(annotLabels) do
     ref[l].nsamples = annot[l]['nsamples']
     ref[l].iters = opt[l .. 'Iters']
     ref[l].batchsize = opt[l .. 'Batch']
-    ref[l].log = Logger(paths.concat(opt.save, l .. '.log'), opt.continue)
 end
 
 ref.predict = {}
