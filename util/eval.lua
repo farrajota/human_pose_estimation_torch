@@ -126,6 +126,7 @@ function displayPCK(dists, part_idx, label, title, show_key)
     local t = torch.linspace(0,.5,curve_res)
     local pdj_scores = torch.zeros(num_curves, curve_res)
     local plot_args = {}
+    local results = {}
     print(title)
     for curve = 1,num_curves do
         for i = 1,curve_res do
@@ -138,6 +139,7 @@ function displayPCK(dists, part_idx, label, title, show_key)
         end
         plot_args[curve] = {label[curve],t,pdj_scores[curve],'-'}
         print(label[curve],pdj_scores[curve][curve_res])
+        results[curve] = {title, label[curve], pdj_scores[curve][curve_res]}
     end
 
     require 'gnuplot'
@@ -147,6 +149,8 @@ function displayPCK(dists, part_idx, label, title, show_key)
     gnuplot.raw('set xrange [0:.5]')
     gnuplot.raw('set yrange [0:1]')
     gnuplot.plot(unpack(plot_args))
+    
+    return results
 end
 
 ------------------------------------------------------------------------------------------------------------

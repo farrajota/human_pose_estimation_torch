@@ -6,6 +6,8 @@ local model_list = {}
 
 -- stacked
 model_list['hg-stacked']        = paths.dofile('hg-stacked.lua')
+model_list['hg-stackedV2']        = paths.dofile('hg-stackedV2.lua')
+model_list['hg-stacked-wide']        = paths.dofile('hg-stacked-wide.lua')
 model_list['hg-stacked-no-int'] = paths.dofile('hg-stacked-no-int.lua')
 -- generic
 model_list['hg-generic'] = paths.dofile('hg-generic.lua')
@@ -15,6 +17,8 @@ model_list['hg-generic-maxpool']    = paths.dofile('hg-generic-maxpool.lua')
 model_list['hg-generic-deception']  = paths.dofile('hg-generic-deception.lua')
 model_list['hg-generic-inception']  = paths.dofile('hg-generic-inception.lua')
 model_list['hg-generic-wide']       = paths.dofile('hg-generic-wide.lua')
+model_list['hg-generic-widev2']     = paths.dofile('hg-generic-widev2.lua')
+model_list['hg-generic-widev3']     = paths.dofile('hg-generic-widev3.lua')
 model_list['hg-generic-highres']    = paths.dofile('hg-generic-highres.lua')
 -- rnn generic
 model_list['hg-generic-rnn']            = paths.dofile('hg-generic-rnn.lua')

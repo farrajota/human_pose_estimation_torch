@@ -1,1 +1,1 @@
-cd .. && th train.lua -dataset flic -trainIters 1000 -trainBatch 4 -expID hg-stacked -netType hg-stacked -nEpochs 100 -nGPU 1
+cd .. && th train.lua -dataset flic -trainIters 1000 -trainBatch 2 -expID hg-stacked -netType hg-stacked -nEpochs 100 -nGPU 1 -optMethod adam 

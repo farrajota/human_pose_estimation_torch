@@ -1,4 +1,5 @@
 paths.dofile('layers/WideResidual.lua')
+paths.dofile('layers/Residual.lua')
 
 local function hourglass(n, f, depth, inp)
     -- Upper branch
@@ -30,7 +31,7 @@ local function createModel()
     local inp = nn.Identity()()
     
     local depth = 2 --(depth-4)/6
-    local widening = 1
+    local widening = 2
 
     -- Initial processing of the image
     local cnv1_ = nn.SpatialConvolution(3,64,7,7,2,2,3,3)(inp)           -- 128

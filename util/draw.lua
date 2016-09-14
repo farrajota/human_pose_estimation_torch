@@ -68,6 +68,46 @@ function drawSkeleton(input, hms, coords)
     return im
 end
 
+
+function drawSkeletonFLIC(input, hms, coords)
+
+    local im = input:clone()
+
+    local pairRef = {
+        --{1,4}, {2,5}, {3,6}, {7,8}
+        {1,2}, {2,3},
+        {4,5}, {5,6},
+        {7,8}, 
+        {9,10}, {10,11}, {9,11}
+        
+    }
+
+
+    local partNames = {'LSho','LElb','LWri','RSho','RElb','RWri',
+                       'LHip','RHip', 'LEye', 'REye', 'Nose'}
+    local partColor = {1,1,1,2,2,2,3,3,4,4,4}
+
+    local actThresh = 0.00001
+
+    -- Loop through adjacent joint pairings
+    for i = 1,#pairRef do
+        if hms[pairRef[i][1]]:mean() > actThresh and hms[pairRef[i][2]]:mean() > actThresh then
+            -- Set appropriate line color
+            local color
+            if partColor[pairRef[i][1]] == 1 then color = {0.1,1,0.1}
+            elseif partColor[pairRef[i][1]] == 2 then color = {1,0,0.3}
+            elseif partColor[pairRef[i][1]] == 3 then color = {0,0,1}
+            elseif partColor[pairRef[i][1]] == 4 then color = {0,0.2,1}
+            else color = {.7,0,.7} end
+
+            -- Draw line
+            im = drawLineColor(im, coords[pairRef[i][1]], coords[pairRef[i][2]], 4, color, 0)
+        end
+    end
+
+    return im
+end
+
 ------------------------------------------------------------------------------------------------------------
 
 function compileImages(imgs, nrows, ncols, res)
@@ -111,4 +151,30 @@ function drawOutput(input, hms, coords)
     im = compileImages({im,totalHm}, 1, 2, 256)
     im = image.scale(im,756)
     return im
+end
+
+function drawOutputFLIC(input, hms, coords)
+    local im = drawSkeletonFLIC(input, hms, coords)
+
+    local colorHms = {}
+    local inp64 = image.scale(input,64):mul(.3)
+    for i = 1,11 do 
+        colorHms[i] = colorHM(hms[i])
+        colorHms[i]:mul(.7):add(inp64)
+    end
+    local totalHm = compileImages(colorHms, 4, 4, 64)
+    im = compileImages({im,totalHm}, 1, 2, 256)
+    im = image.scale(im,756)
+    return im
+end
+
+function drawHeatmapPartsFLIC(input, hms, coords)
+
+    local colorHms = {}
+    local inp64 = image.scale(input,64):mul(.3)
+    for i = 1,11 do 
+        colorHms[i] = colorHM(hms[i])
+        colorHms[i]:mul(.7):add(inp64)
+    end
+    return colorHms
 end

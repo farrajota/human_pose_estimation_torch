@@ -18,6 +18,7 @@ require 'nngraph'
 require 'cutorch'
 require 'cunn'
 require 'cudnn'
+local json = require 'json'
 
 paths.dofile('util/img.lua')
 paths.dofile('util/eval.lua')
@@ -37,8 +38,8 @@ cmd:text('MPII/FLIC Benchmark (PCKh evaluation) options: ')
 cmd:text()
 cmd:text(' ---------- General options --------------------------------------')
 cmd:text()
-cmd:option('-expID',       'hg-stacked-multigpu', 'Experiment ID')
-cmd:option('-dataset',        'mpii', 'Dataset choice: mpii | flic')
+cmd:option('-expID',       'hg-generic-maxpool', 'Experiment ID')
+cmd:option('-dataset',        'flic', 'Dataset choice: mpii | flic')
 cmd:option('-dataDir',  projectDir .. '/data', 'Data directory')
 cmd:option('-expDir',   projectDir .. '/exp',  'Experiments directory')
 cmd:option('-reprocess',   false,  'Utilize existing predictions from the model\'s folder.')
@@ -162,6 +163,7 @@ print(('Selected dataset: %s'):format(opt.dataset))
 print('==============================================\n')
 
 local labels = {'valid', 'test'}
+if opt.dataset == 'flic' then  labels = {'valid'} end
 
 for k, set in pairs(labels) do
     -- check if files already exist, and if the reprocess flag is false
@@ -174,7 +176,17 @@ for k, set in pairs(labels) do
         local nsamples = idxs:nElement()
         -- Displays a convenient progress bar
         xlua.progress(0,nsamples)
-        local preds = torch.Tensor(nsamples,16,2)
+        
+        -- select number of partys depedning on the dataset
+        if opt.dataset == 'mpii' then
+            nparts = 16
+        elseif opt.dataset == 'flic' then
+            nparts = 11
+        else
+            error('Undefined dataset: ' .. opt.dataset)
+        end
+        
+        local preds = torch.Tensor(nsamples,nparts,2)
         
         -- alloc memory in the gpu for faster data transfer
         local input = torch.Tensor(1,3,opt.inputRes, opt.inputRes); input=cast(input)
@@ -225,6 +237,8 @@ for i=1, #labels do
     table.insert(dists,calcDists(preds, a.part, a.normalize))
 end
 
+local res = {}
+if opt.dataset == 'mpii' then
 require 'gnuplot'
 gnuplot.raw('set bmargin 1')
 gnuplot.raw('set lmargin 3.2')
@@ -251,5 +265,30 @@ gnuplot.raw('unset multiplot')
 
 gnuplot.pngfigure(paths.concat(opt.save, 'Validation_Set_Performance_PCKh.png')) 
 gnuplot.plotflush()
+
+else
+    require 'gnuplot'
+    gnuplot.raw('set bmargin 1')
+    gnuplot.raw('set lmargin 3.2')
+    gnuplot.raw('set rmargin 2')    
+    gnuplot.raw('set multiplot layout 2,3 title "FLIC Validation Set Performance (PCKh)"')
+    gnuplot.raw('set xtics font ",6"')
+    gnuplot.raw('set ytics font ",6"')
+    gnuplot.raw('set tmargin 2.5')
+    gnuplot.raw('set bmargin 1.5')
+    res[1] = displayPCK(dists, {1,4}, labels, 'Shoulder')
+    print('-----------------------------------')
+    res[2] = displayPCK(dists, {2,5}, labels, 'Elbow')
+    print('-----------------------------------')
+    res[3] = displayPCK(dists, {3,6}, labels, 'Wrist', true)
+    print('-----------------------------------')
+    gnuplot.raw('unset multiplot')
+
+    gnuplot.pngfigure(paths.concat(opt.save, 'Validation_Set_Performance_PCKh.png')) 
+    gnuplot.plotflush()
+
+end
+
+json.save(paths.concat(opt.save,'Validation_Set_Performance_results.json'), json.encode(res))
 
 print('Benchmark script complete.')

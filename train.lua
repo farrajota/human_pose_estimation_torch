@@ -14,6 +14,10 @@ require 'string'
 paths.dofile('configs.lua')
 local lopt = opt
 
+print('\n*******')
+print(opt.optMethod)
+print('*******\n')
+
 -- load torchnet package
 local tnt = require 'torchnet'
 
