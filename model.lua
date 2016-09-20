@@ -10,12 +10,16 @@
 local model
 opt.iniEpoch = 1
 if opt.continue or opt.branch ~= 'none' then
-    local optimState = torch.load(opt.save .. '/optimState.t7')
-    local prevModel = opt.save .. '/model_' .. optimState.epoch .. '.t7'
+    local prevModel
+    if paths.filep(opt.save .. '/optim.t7') then
+        prevModel = opt.save .. '/model.t7'
+    else
+        prevModel = opt.save .. '/model_' .. epoch .. '.t7'
+    end
+    
     print('==> Loading model from: ' .. prevModel)
     model = torch.load(prevModel)
-    opt.iniEpoch =  optimState.epoch
-    epoch = optimState.epoch
+    opt.iniEpoch = epoch
 
 -- Or a path to previously trained model is provided
 elseif opt.loadModel ~= 'none' then

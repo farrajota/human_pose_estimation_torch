@@ -107,6 +107,7 @@ loggers.full_train.showPlot = false
 local engine = tnt.OptimEngine()
 
 engine.hooks.onStartEpoch = function(state)
+   if opt.iniEpoch then state.epoch = math.max(opt.iniEpoch, state.epoch) end
    print('\n**********************************************')
    print(('Starting Train epoch %d/%d'):format(state.epoch+1, state.maxepoch))
    print('**********************************************')
@@ -206,7 +207,7 @@ engine:train{
 --------------------------------------------------------------------------------
 print('==> Saving final model to disk: ' .. paths.concat(opt.save,'final_model.t7'))
 local utils = paths.dofile('util/utils.lua')
-utils.saveDataParallel(paths.concat(opt.save,'final_model.t7'), model:clearState())
+utils.saveDataParallel(paths.concat(opt.save,'final_model.t7'), model.modules[1]:clearState())
 torch.save(paths.concat(opt.save,'final_optimState.t7'), optimStateFn(opt,nEpochs))
 loggers.valid:style{'+-', '+-'}; loggers.valid:plot()
 loggers.train:style{'+-', '+-'}; loggers.train:plot()

@@ -67,13 +67,18 @@ if not opt then
       opt.load = opt_.load
       opt.continue = opt_.continue
       for i = 1,#setOpts do opt[setOpts[i]] = opt_[setOpts[i]] end
-
-      epoch = opt.lastEpoch + 1
+      
+      -- determine highest epoc and load corresponding model
+      local last_epoch = torch.load(opt.load .. '/last_epoch.t7')
+      
+      epoch = last_epoch
       
       -- If there's a previous optimState, load that too
-      if paths.filep(opt.load .. '/optimState.t7') then
-          optimState = torch.load(opt.load .. '/optimState.t7')
+      if paths.filep(opt.load .. '/optim.t7') then
+          optimState = torch.load(opt.load .. '/optim.t7')
           optimState.learningRate = opt.LR
+      elseif paths.filep(opt.load .. '/optim_' .. last_epoch .. '.t7') then
+          optimState = torch.load(opt.load .. '/optim_' .. last_epoch .. '.t7')
       end
 
   else epoch = 1 end
