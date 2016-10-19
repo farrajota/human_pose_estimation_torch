@@ -20,7 +20,7 @@ local function store(model, optimState, epoch, flag, flag_optimize)
    local flag_optimize = flag_optimize or false
    if flag then 
       print('Saving model snapshot to: ' .. paths.concat(opt.save,'model_' .. epoch ..'.t7'))
-      utils.saveDataParallel(paths.concat(opt.save, 'model_' .. epoch .. '.t7'), model.modules[1]:clearState())
+      utils.saveDataParallel(paths.concat(opt.save, 'model_' .. epoch .. '.t7'), model:clearState())
       --torch.save(paths.concat(opt.save, 'model_' .. epoch .. '.t7'), model:clearState())
       
       torch.save(paths.concat(opt.save,'optim_' .. epoch ..'.t7'), optimState)
@@ -32,7 +32,7 @@ local function store(model, optimState, epoch, flag, flag_optimize)
       end
    else
       print('Saving model snapshot to: ' .. paths.concat(opt.save,'model.t7'))
-      utils.saveDataParallel(paths.concat(opt.save, 'model.t7'), model.modules[1]:clearState())
+      utils.saveDataParallel(paths.concat(opt.save, 'model.t7'), model:clearState())
       --torch.save(paths.concat(opt.save, 'model.t7'), model:clearState())
       
       torch.save(paths.concat(opt.save,'optim.t7'), optimState)

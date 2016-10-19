@@ -39,7 +39,8 @@ local function makeDataParallelTable(model, nGPU)
       local gpus = torch.range(1, nGPU):totable()
       local fastest, benchmark = cudnn.fastest, cudnn.benchmark
 
-      local dpt = nn.DataParallelTable(1, true, true)
+      --local dpt = nn.DataParallelTable(1, true, true)
+      local dpt = nn.DataParallelTable(1)
          :add(model, gpus)
          :threads(function()
             require 'nngraph'
@@ -71,7 +72,8 @@ end
 
 local function saveDataParallel(filename, model)
    if torch.type(model) == 'nn.DataParallelTable' then
-      torch.save(filename, cleanDPT(model))
+      --torch.save(filename, cleanDPT(model))
+      torch.save(filename, model.modules[1])
    elseif torch.type(model) == 'nn.Sequential' or torch.type(model) == 'nn.gModule' then
       local temp_model = nn.Sequential()
       for i, module in ipairs(model.modules) do
@@ -89,11 +91,10 @@ end
 
 ------------------------------------------------------------------------------------------------------------
 
-local function loadDataParallel(filename, nGPU)
+local function loadDataParallel(model, nGPU)
    --if opt.backend == 'cudnn' then
    --   require 'cudnn'
    --end
-   local model = torch.load(filename)
    if torch.type(model) == 'nn.DataParallelTable' then
       return makeDataParallelTable(model:get(1):float(), nGPU)
    elseif torch.type(model) == 'nn.Sequential' or torch.type(model) == 'nn.gModule' then

@@ -106,25 +106,33 @@ loggers.full_train.showPlot = false
 -- set up training engine:
 local engine = tnt.OptimEngine()
 
+engine.hooks.onStart = function(state)
+   if state.training then
+      if opt.iniEpoch>1 then 
+         state.epoch = math.max(opt.iniEpoch, state.epoch)
+      end
+   end
+end
+
 engine.hooks.onStartEpoch = function(state)
-   if opt.iniEpoch then state.epoch = math.max(opt.iniEpoch, state.epoch) end
    print('\n**********************************************')
    print(('Starting Train epoch %d/%d'):format(state.epoch+1, state.maxepoch))
    print('**********************************************')
    state.config = optimStateFn(state.epoch+1)
+   
 end
 
 
 engine.hooks.onForwardCriterion = function(state)
    if state.training then
       xlua.progress(state.t+1, nBatchesTrain)
-      
+      ----print('here4')
       -- compute the PCK accuracy of the networks (last) output heatmap with the ground-truth heatmap
       local acc = accuracy(state.network.output, state.sample.target)
-      
+      ----print('here5')
       meters.train_err:add(state.criterion.output)
       meters.train_accu:add(acc)
-      
+      ----print('here6')
       loggers.full_train:add{state.criterion.output, acc}
    else
       xlua.progress(state.t, nBatchesTest)
@@ -149,7 +157,9 @@ if opt.nOutputs > 1 then
 end
 
 engine.hooks.onSample = function(state)
+   ----print('here1')
    inputs:resize(state.sample.input[1]:size() ):copy(state.sample.input[1])
+   ----print('here2')
    if opt.nOutputs > 1 then 
       for i=1, opt.nOutputs do
          targets[i]:resize(state.sample.target[1][i]:size()):copy(state.sample.target[1][i])
@@ -157,6 +167,7 @@ engine.hooks.onSample = function(state)
    else
       targets:resize(state.sample.target[1]:size()):copy(state.sample.target[1])
    end
+   ----print('here3')
    state.sample.input  = inputs
    state.sample.target = targets
 end
@@ -183,7 +194,7 @@ engine.hooks.onEndEpoch = function(state)
    loggers.valid:add{vl_loss, vl_accuracy}
    print(('Validation Loss: %0.5f; Acc: %0.5f'):format(meters.valid_err:value(),  meters.valid_accu:value()))
    -- store model
-   storeModel(state.network, state.config, state.epoch, opt)
+   storeModel(state.network.modules[1], state.config, state.epoch, opt)
    state.t = 0
 end
 

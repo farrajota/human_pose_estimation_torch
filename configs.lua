@@ -159,12 +159,13 @@ if opt.optimize then
   
    local sample_input = torch.randn(2,3,opt.inputRes,opt.inputRes):float()
    if opt.GPU>=1 then sample_input=sample_input:cuda() end
+   net:training()
    optnet.optimizeMemory(net, sample_input, {inplace = false, mode = 'training'})
    print('Done.')
 end
 
 -- Generate networks graph 
-if opt.genGraph > 0 then
+if opt.genGraph > 0 and epoch == 1 then
   graph.dot(net.fg, 'pose network', paths.concat(opt.save, 'network_graph'))
   local sys = require 'sys'
   if #sys.execute('command -v inkscape') > 0 then
@@ -175,7 +176,11 @@ end
 -- Use multiple gpus
 if opt.GPU >= 1 and opt.nGPU > 1 then
   local utils = paths.dofile('util/utils.lua')
-  model:add(utils.makeDataParallelTable(net, opt.nGPU)) -- defined in util.lua
+  if torch.type(net) == 'nn.DataParallelTable' then
+     model:add(utils.loadDataParallel(net, opt.nGPU))
+  else
+     model:add(utils.makeDataParallelTable(net, opt.nGPU))
+  end
 else
   model:add(net)
 end
