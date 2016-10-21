@@ -4,6 +4,9 @@ predDim = {nParts,2}
 criterion = nn.ParallelCriterion()
 for i = 1,opt.nStack do criterion:add(nn.MSECriterion()) end
 
+-- Function for data augmentation, randomly samples on a normal distribution
+local function rnd(x) return math.max(-2*x,math.min(2*x,torch.randn(1)[1]*x)) end
+
 -- Code to generate training samples from raw images.
 function generateSample(set, idx)
     local pts = annot[set]['part'][idx]

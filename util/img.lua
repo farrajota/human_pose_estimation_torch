@@ -1,4 +1,46 @@
 -------------------------------------------------------------------------------
+-- Coordinate normalization
+-------------------------------------------------------------------------------
+
+function normCoords(bbox, keypoints, size, scale)
+  
+    -- get crop region coordinates
+    local xc = (bbox[1]+bbox[3])/2
+    local yc = (bbox[2]+bbox[4])/2
+    local width = (bbox[3]-bbox[1])+1
+    local height = (bbox[5]-bbox[2])+1
+    
+    -- get maximum size of the bbox
+    local max_size = math.max(width, height)
+    
+    -- get a square bbox around the center of the bbox and add a small scaling effect
+    local crop_coords
+    if width > height then
+        local diff = (width - height)/2
+        local w_offset = (width/2) * scale
+        local h_offset = (height/2+diff) * scale
+        crop_coords = {xc-w_offset,yc-h_offset,xc+w_offset,yc+h_offset}
+    else
+        local diff = (height - width)/2
+        local w_offset = (width/2+diff) * scale
+        local h_offset = (height/2) * scale
+        crop_coords = {xc-w_offset,yc-h_offset,xc+w_offset,yc+h_offset}
+    end
+    
+    -- set new keypoints coordinates
+    local new_keypoints = keypoints:clone():fill(0)
+    local new_max_size = crop_coords[3]-crop_coords[1]
+    for i=1, keypoints:size(1) do
+        keypoints[i][1] = keypoints[i][1] - crop_coords[1] / new_max_size * size
+        keypoints[i][2] = keypoints[i][2] - crop_coords[2] / new_max_size * size
+    end
+    
+    -- output
+    return crop_coords, new_keypoints
+end
+
+
+-------------------------------------------------------------------------------
 -- Coordinate transformation
 -------------------------------------------------------------------------------
 
@@ -54,6 +96,51 @@ end
 -------------------------------------------------------------------------------
 -- Cropping
 -------------------------------------------------------------------------------
+
+function checkDims(dims) return dims[3] < dims[4] and dims[5] < dims[6] end
+
+function crop2(img, center, scale, rot, res)
+    local ndim = img:nDimension()
+    if ndim == 2 then img = img:view(1,img:size(1),img:size(2)) end
+    local ht,wd = img:size(2), img:size(3)
+    local tmpImg = img
+    local scaleFactor = (200 * scale) / res
+    if scaleFactor < 2 then scaleFactor = 1
+    else tmpImg = image.scale(img,math.ceil(math.max(ht,wd) / scaleFactor)) end
+
+    ht,wd = tmpImg:size(2),tmpImg:size(3)
+    local c,s = center:float()/scaleFactor, scale/scaleFactor
+    local ul = transform({1,1}, c, s, 0, res, true)
+    local br = transform({res+1,res+1}, c, s, 0, res, true)
+
+    local pad = math.ceil(torch.norm((ul - br):float())/2 - (br[1]-ul[1])/2)
+    if rot ~= 0 then
+        ul = ul - pad
+        br = br + pad
+    end
+
+    local new_ = {1,-1,math.max(1, -ul[2] + 2), math.min(br[2], ht+1) - ul[2],
+                       math.max(1, -ul[1] + 2), math.min(br[1], wd+1) - ul[1]}
+    local old_ = {1,-1,math.max(1, ul[2]), math.min(br[2], ht+1) - 1,
+                       math.max(1, ul[1]), math.min(br[1], wd+1) - 1}
+    -- Check that dimensions are okay
+    if not (checkDims(new_) and checkDims(old_)) then
+        return torch.zeros(img:size(1),res,res)
+    end
+    local newImg = torch.zeros(img:size(1), br[2] - ul[2] + 1, br[1] - ul[1] + 1)
+    if rot == 0 and scaleFactor > 2 then newImg = torch.zeros(img:size(1),res,res) end
+    newImg:sub(unpack(new_)):copy(tmpImg:sub(unpack(old_)))
+
+    if rot ~= 0 then
+        newImg = image.rotate(newImg, rot * math.pi / 180, 'bilinear')
+        newImg = newImg:sub(1,-1,pad,newImg:size(2)-pad,pad,newImg:size(3)-pad)
+    end
+
+    newImg = image.scale(newImg,res,res)
+    if ndim == 2 then newImg = newImg:view(newImg:size(2),newImg:size(3)) end
+    return newImg
+end
+
 
 function crop(img, center, scale, rot, res)
     local ul = transform({1,1}, center, scale, 0, res, true)
