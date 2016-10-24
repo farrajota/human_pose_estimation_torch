@@ -94,7 +94,9 @@ if not opt then
           local schedule = {}
           local schedule_id = 0
           for i=1, #opt.schedule do
-              table.insert(schedule, {schedule_id+1, schedule_id+opt.schedule[i][1], opt.schedule[i][2], opt.schedule[i][3]})
+              table.insert(schedule, {schedule_id+1, schedule_id+opt.schedule[i][1], 
+                  opt.schedule[i][2], 
+                  opt.schedule[i][3]})
               schedule_id = schedule_id+opt.schedule[i][1]
           end
         
@@ -158,6 +160,28 @@ if not outputDim then
     outputDim = {nJoints, opt.outputRes, opt.outputRes}
 end
 
+
+-------------------------------------------------------------------------------
+-- Get dataset mean/std for normalization
+-------------------------------------------------------------------------------
+
+print('Loading mean/std normalization values... ')
+local fname_meanstd = paths.concat(opt.expDir, 'meanstd_cache.t7')
+
+if paths.filep(fname_meanstd) then
+    -- load mean/std from disk
+    print('Loading mean/std cache from disk: ' .. fname_meanstd)
+    opt.meanstd = torch.load(fname_meanstd, meanstd)
+else
+    -- compute mean/std 
+    paths.dofile('data.lua')
+    print('mean/std cache file not found. Computing mean/std for the ' .. opt.dataset ..' dataset:')
+    local meanstd = ComputeMeanStd(g_dataset.train)
+    print('Saving mean/std cache to disk: ' .. fname_meanstd)
+    torch.save(fname_meanstd, meanstd)
+    opt.meanstd = meanstd
+end
+print(opt.meanstd)
 
 -------------------------------------------------------------------------------
 -- Load model + criterion

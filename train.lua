@@ -31,7 +31,7 @@ print('**********************\n')
 
 
 --[[
-paths.dofile('data_new.lua')
+paths.dofile('data.lua')
 local data=loadDataset()
 a,b = loadData(dataset.train, 19)
 --a,b = loadData('train', 150, 2)
@@ -49,7 +49,7 @@ local function getIterator(mode)
                   require 'torch'
                   require 'torchnet'
                   opt = lopt
-                  paths.dofile('data_new.lua')
+                  paths.dofile('data.lua')
                   torch.manualSeed(threadid+opt.manualSeed)
                 end,
       closure = function()
@@ -153,7 +153,7 @@ end
 
 
 -- copy sample to GPU buffer:
-local inputs, targets = cast(torch.Tensor(), cast(torch.Tensor()
+local inputs, targets = cast(torch.Tensor()), cast(torch.Tensor())
 
 engine.hooks.onSample = function(state)
     cutorch.synchronize(); collectgarbage();
