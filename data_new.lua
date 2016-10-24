@@ -29,6 +29,7 @@ local function rnd(x) return math.max(-2*x,math.min(2*x,torch.randn(1)[1]*x)) en
 --Image + keypoint loading functions
 -------------------------------------------------------------------------------
 
+-- mpii
 local function MPIILoadImgKeypointsFn(data, idx)
     local object = data.object[idx]
     local filename = ffi.string(data.filename[object[1]]:data())
@@ -48,23 +49,66 @@ local function MPIILoadImgKeypointsFn(data, idx)
     return img, keypoints:view(nJoints, 3), center, scale, nJoints
 end
 
-local function FLICLoadImgKeypointsFn(idx)
-    -- initializations
+-- flic
+local function FLICLoadImgKeypointsFn(data, idx)
     local object = data.object[idx]
     local filename = ffi.string(data.filename[object[1]]:data())
-    local keypoints = data.keypoints[object[3]]
+    local keypoints = data.keypoint[object[3]]
     local torso = data.torso[object[4]]
     local center = torch.FloatTensor({(torso[1]+torso[3])/2, (torso[2]+torso[4])/2})
     local scale = 2.2
+    local nJoints = keypoints:size(1)/3
     
+    -- Load image
+    local img = image.load(filename,3,'float')
     
+    -- image, keypoints, center coords, scale, number of joints
+    return img, keypoints:view(nJoints, 3), center, scale, nJoints
 end
 
-local function LSPLoadImgKeypointsFn(idx)
+-- leeds sports
+local function LSPLoadImgKeypointsFn(data, idx)
     local object = data.object[idx]
+    local filename = ffi.string(data.filename[object[1]]:data())
+    local keypoints = data.keypoint[object[3]]
+    local nJoints = keypoints:size(1)/3
+    keypoints = keypoints:view(nJoints, 3)
+    
+    -- calc center coordinates
+    local xmin = keypoints[{{},{1}}]:min()
+    local xmax = keypoints[{{},{1}}]:max()
+    local ymin = keypoints[{{},{2}}]:min()
+    local ymax = keypoints[{{},{2}}]:max()
+    local center = torch.FloatTensor({(xmin+xmax)/2, (ymin+ymax)/2})
+    local scale = 1.0
+    
+    -- Load image
+    local img = image.load(filename,3,'float')
+    
+    -- image, keypoints, center coords, scale, number of joints
+    return img, keypoints, center, scale, nJoints
 end
 
-local function COCOLoadImgKeypointsFn(idx)
+-- ms coco keypoints
+local function COCOLoadImgKeypointsFn(data, idx)
+    local object = data.object[idx]
+    local filename = ffi.string(data.filename[object[1]]:data())
+    local keypoints = data.keypoint[object[4]]
+    local nJoints = keypoints:size(1)/3
+    keypoints = keypoints:view(nJoints, 3)
+    
+    -- calc center coordinates
+    local bbox = data.bbox[object[3]]
+    local center = torch.FloatTensor({(bbox[1]+bbox[3])/2, (bbox[2]+bbox[4])/2})
+    local bbox_width = bbox[3]-bbox[1]
+    local bbox_height = bbox[4]-bbox[2]
+    local scale = math.max(bbox_height, bbox_width)/200 * 1.25
+    
+    -- Load image
+    local img = image.load(filename,3,'float')
+    
+    -- image, keypoints, center coords, scale, number of joints
+    return img, keypoints, center, scale, nJoints
   
 end
 
@@ -122,20 +166,17 @@ end
 
 
 -------------------------------------------------------------------------------
--- Load data for train/test
+-- Load data for one object in the train/test data
 -------------------------------------------------------------------------------
 
-function loadData(data, idx, mode)
+function loadData(data, mode)
   
     -- inits
     local r = 0 -- set rotation to 0
     
     -- Load image + keypoints + other data
-    local index = idx
-    if mode == 'train' then
-        index = torch.random(1, data.object:size(1))
-    end
-    local img, keypoints, c, s, nJoints = loadImgKeypointsFn(data, index)
+    local idx = torch.random(1, data.object:size(1))
+    local img, keypoints, c, s, nJoints = loadImgKeypointsFn(data, idx)
     
     -- Do rotation + scaling
     if mode == 'train' then
@@ -173,3 +214,29 @@ function loadData(data, idx, mode)
     return img_transf, heatmap
 end
 
+
+-------------------------------------------------------------------------------
+-- Get a batch of data samples
+-------------------------------------------------------------------------------
+
+function getSampleBatch(data, mode)
+    local sample = {}
+    
+    -- get batch data
+    for i=1, opt.batchSize do
+        table.insert(sample, {loadData(data, mode)})
+    end
+    
+    -- concatenate data
+    local imgs_tensor = torch.FloatTensor(opt.batchSize, sample[1][1]:size(1), sample[1][1]:size(2), sample[1][1]:size(3)):fill(0)
+    local heatmaps_tensor = torch.FloatTensor(opt.batchSize, sample[1][2]:size(1), sample[1][2]:size(2), sample[1][2]:size(3)):fill(0)
+    
+    for i=1, opt.batchSize do
+        imgs_tensor[i]:copy(sample[i][1])
+        heatmaps_tensor[i]:copy(sample[i][2])
+    end
+    
+    collectgarbage()
+    
+    return imgs_tensor, heatmaps_tensor
+end

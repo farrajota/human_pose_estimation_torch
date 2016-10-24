@@ -86,6 +86,50 @@ else
    opt.dataType = 'torch.FloatTensor'
 end
 
+
+--------------------------------------------------------------------------------
+-- Optimize networks memory usage
+--------------------------------------------------------------------------------
+
+local modelOut = nn.Sequential()
+
+-- optimize network's memory allocations
+if opt.optimize then
+   -- for memory optimizations and graph generation
+   print('Optimize (reduce) network\'s memory usage...')
+   local optnet = require 'optnet'
+  
+   local sample_input = torch.randn(2,3,opt.inputRes,opt.inputRes):float()
+   if opt.GPU>=1 then sample_input=sample_input:cuda() end
+   model:training()
+   optnet.optimizeMemory(model, sample_input, {inplace = false, mode = 'training'})
+   print('Done.')
+end
+
+-- Generate networks graph 
+if opt.genGraph > 0 and epoch == 1 then
+  graph.dot(model.fg, 'pose network', paths.concat(opt.save, 'network_graph'))
+  local sys = require 'sys'
+  if #sys.execute('command -v inkscape') > 0 then
+    os.execute(('inkscape -z -e %s  -h 30000 %s'):format(paths.concat(opt.save, 'network_graph.png'),  paths.concat(opt.save, 'network_graph.svg')))
+  end
+end
+
+-- Use multiple gpus
+if opt.GPU >= 1 and opt.nGPU > 1 then
+  if torch.type(model) == 'nn.DataParallelTable' then
+     modelOut:add(utils.loadDataParallel(model, opt.nGPU))
+  else
+     modelOut:add(utils.makeDataParallelTable(model, opt.nGPU))
+  end
+else
+  modelOut:add(model)
+end
+
+local function cast(x) return x:type(opt.data_type) end
+
+cast(modelOut)
+
 ------------------------------------------------------------------------------------------------------
 
-return model, criterion
+return modelOut, criterion

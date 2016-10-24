@@ -7,9 +7,8 @@ local function Parse(arg)
     cmd:text()
     cmd:text(' ---------- General options ------------------------------------')
     cmd:text()
-    --cmd:option('-expID',       'default-multigpu', 'Experiment ID')
-    cmd:option('-expID',       'hg-generic-dataLoader', 'Experiment ID')
-    cmd:option('-dataset',        'mpii', 'Dataset choice: mpii | flic')
+    cmd:option('-expID',       'hg-generic', 'Experiment ID')
+    cmd:option('-dataset',        'mscoco', 'Dataset choice: mpii | flic | lsp | mscoco')
     cmd:option('-dataDir',  projectDir .. '/data', 'Data directory')
     cmd:option('-expDir',   projectDir .. '/exp',  'Experiments directory')
     cmd:option('-manualSeed',          2, 'Manually set RNG seed')
@@ -45,11 +44,8 @@ local function Parse(arg)
     cmd:text(' ---------- Training options -----------------------------------')
     cmd:text()
     cmd:option('-nEpochs',           100, 'Total number of epochs to run')
-    cmd:option('-trainIters',       4000, 'Number of train iterations per epoch')
-    cmd:option('-trainBatch',          4, 'Mini-batch size')
-    cmd:option('-validIters',       2958, 'Number of validation iterations per epoch') 
-    cmd:option('-validBatch',          1, 'Mini-batch size for validation')
     cmd:option('-batchSize',           4, 'Mini-batch size')
+    cmd:option('-schedule', "{{30,2.5e-4,0},{10,1e-4,0}}", 'Optimization schedule. Overrides the previous configs if not empty.')
     cmd:text()
     cmd:text(' ---------- Data options ---------------------------------------')
     cmd:text()
@@ -67,10 +63,11 @@ local function Parse(arg)
     opt.dataDir = paths.concat(opt.dataDir, opt.dataset)
     opt.save = paths.concat(opt.expDir, opt.expID)
     
-    if not (opt.validBatch >= opt.nGPU) then
-      print('Converting validBatch from ' .. opt.validBatch .. ' to ' .. opt.nGPU)
-      opt.validBatch = opt.nGPU
+    if not utils then
+        utils = paths.dofile('util/utils.lua')
     end
+    
+    opt.schedule = utils.Str2TableFn(opt.schedule)
     
     return opt
 end

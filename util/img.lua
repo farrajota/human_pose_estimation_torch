@@ -325,6 +325,10 @@ function shuffleLR(x)
         matchedParts = {
             {1,6}, {2,5}, {3,4}, {7,12}, {8,11}, {9,10}
         }
+    elseif opt.dataset == 'mscoco' or opt.dataset == 'coco'  then
+        matchedParts = {
+            {2,3}, {4,5}, {6,7}, {8,9}, {10,11}, {12,13}, {14,15}, {16,17}
+        }
     end
 
     for i = 1,#matchedParts do

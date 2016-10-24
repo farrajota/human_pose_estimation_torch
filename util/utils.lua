@@ -111,6 +111,31 @@ end
 
 ------------------------------------------------------------------------------------------------------------
 
+local function ReplicateTensor2Table(tensor, N)
+    local data = {}
+    if N > 1 then
+        for i=1, N do table.insert(data, tensor) end
+        return data
+    else
+        return tensor
+    end
+end
+
+------------------------------------------------------------------------------------------------------------
+
+local function Str2TableFn(input) -- convert a string into a table 
+    local json = require 'rapidjson'
+    
+    -- replace '{' and '}' by '[' and '], respectively
+    input = input:gsub("%{","[")
+    input = input:gsub("%}","]")
+    
+    -- use json decode function to convert the string into a table
+    return json.decode(input)
+end
+
+------------------------------------------------------------------------------------------------------------
+
 return {
    MSRinit = MSRinit,
    FCinit = FCinit,
@@ -118,5 +143,9 @@ return {
 
    makeDataParallelTable = makeDataParallelTable,
    saveDataParallel = saveDataParallel, 
-   loadDataParallel = loadDataParallel
+   loadDataParallel = loadDataParallel,
+   
+   -- table operations 
+   ReplicateTensor2Table = ReplicateTensor2Table,
+   Str2TableFn = Str2TableFn,
 }

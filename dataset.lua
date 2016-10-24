@@ -18,6 +18,10 @@ function loadDataset()
     local category = 'full'
     if opt.dataset == 'mpii' then
         category = 'singletrainval'
+    elseif opt.dataset == 'lsp' then
+        category = 'extended'
+    elseif opt.dataset == 'mscoco' or opt.dataset == 'coco' then
+        category = 'filtered'
     end
     
     -- load dataset

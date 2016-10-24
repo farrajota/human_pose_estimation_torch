@@ -23,6 +23,7 @@ paths.dofile('util/img.lua')
 paths.dofile('util/eval.lua')
 paths.dofile('util/Logger.lua')
 paths.dofile('util/store.lua')
+utils = paths.dofile('util/utils.lua')
 
 torch.setdefaulttensortype('torch.FloatTensor')
 
@@ -83,21 +84,53 @@ if not opt then
 
   else epoch = 1 end
   opt.epochNumber = epoch
+  nEpochs = opt.nEpochs
 
   -- Training hyperparameters
   -- (Some of these aren't relevant for rmsprop which is the optimization we use)
   if not optimState then
-      optimState = {
-          learningRate = opt.LR,
-          learningRateDecay = opt.LRdecay,
-          momentum = opt.momentum,
-          dampening = 0.0,
-          weightDecay = opt.weightDecay
-      }
+      if type(opt.schedule)=='table' then
+        
+          local schedule = {}
+          local schedule_id = 0
+          for i=1, #opt.schedule do
+              table.insert(schedule, {schedule_id+1, schedule_id+opt.schedule[i][1], opt.schedule[i][2], opt.schedule[i][3]})
+              schedule_id = schedule_id+opt.schedule[i][1]
+          end
+        
+          optimStateFn = function(epoch) 
+              for k, v in pairs(schedule) do
+                  if v[1] <= epoch and v[2] >= epoch then
+                      return {
+                          learningRate = v[3],
+                          learningRateDecay = opt.LRdecay,
+                          momentum = opt.momentum,
+                          dampening = 0.0,
+                          weightDecay = v[4],
+                          end_schedule = (v[2]==epoch and 1) or 0
+                      }
+                  end
+              end
+              return optimState
+          end
+          
+          -- determine the maximum number of epochs
+          for k, v in pairs(schedule) do
+              nEpochs = math.min(v[2])
+          end
+      else
+          optimStateFn = function(epoch) 
+                  return {
+                      learningRate = opt.LR,
+                      learningRateDecay = opt.LRdecay,
+                      momentum = opt.momentum,
+                      dampening = 0.0,
+                      weightDecay = opt.weightDecay
+                  }
+              end
+          
+      end
   end
-  
-  -- define optim state function ()
-  optimStateFn = function(epoch) return optimState end
 
   -- Random number seed
   if opt.manualSeed ~= -1 then torch.manualSeed(opt.manualSeed)
@@ -110,18 +143,25 @@ end
 
 
 -------------------------------------------------------------------------------
--- Load model + criterion
+-- Load Dataset
 -------------------------------------------------------------------------------
 
+paths.dofile('dataset.lua')
+g_dataset = loadDataset() -- load dataset train+val+test sets
+
+-- define the number of training batches
+g_nBatchesTrain = math.ceil((g_dataset.train.object:size(1)/100)/opt.batchSize)*100 -- round it to the hundreds
+g_nBatchesTest = math.ceil((g_dataset.val.object:size(1)/100)/opt.batchSize)*100 -- round it to the hundreds
+
 if not outputDim then
-  if opt.dataset == 'mpii' then
-    outputDim = {16, opt.outputRes, opt.outputRes}
-  elseif opt.dataset == 'flic' then
-    outputDim = {11, opt.outputRes, opt.outputRes}
-  else
-    error('Undefined dataset name: ' .. opt.dataset)
-  end
+    local nJoints = g_dataset.val.keypoint[1]:size(1)/3
+    outputDim = {nJoints, opt.outputRes, opt.outputRes}
 end
+
+
+-------------------------------------------------------------------------------
+-- Load model + criterion
+-------------------------------------------------------------------------------
 
 if opt.netType == 'hg-stacked' then
    if opt.task == 'pose-int' then
@@ -142,49 +182,5 @@ else
   opt.nOutputs = opt.nStack
 end
 
-local net, crit = paths.dofile('model.lua') -- Load model
-criterion = crit
-model = nn.Sequential()
-
-
---------------------------------------------------------------------------------
--- Optimize networks memory usage
---------------------------------------------------------------------------------
-
--- optimize network's memory allocations
-if opt.optimize then
-   -- for memory optimizations and graph generation
-   print('Optimize (reduce) network\'s memory usage...')
-   local optnet = require 'optnet'
-  
-   local sample_input = torch.randn(2,3,opt.inputRes,opt.inputRes):float()
-   if opt.GPU>=1 then sample_input=sample_input:cuda() end
-   net:training()
-   optnet.optimizeMemory(net, sample_input, {inplace = false, mode = 'training'})
-   print('Done.')
-end
-
--- Generate networks graph 
-if opt.genGraph > 0 and epoch == 1 then
-  graph.dot(net.fg, 'pose network', paths.concat(opt.save, 'network_graph'))
-  local sys = require 'sys'
-  if #sys.execute('command -v inkscape') > 0 then
-    os.execute(('inkscape -z -e %s  -h 30000 %s'):format(paths.concat(opt.save, 'network_graph.png'),  paths.concat(opt.save, 'network_graph.svg')))
-  end
-end
-
--- Use multiple gpus
-if opt.GPU >= 1 and opt.nGPU > 1 then
-  local utils = paths.dofile('util/utils.lua')
-  if torch.type(net) == 'nn.DataParallelTable' then
-     model:add(utils.loadDataParallel(net, opt.nGPU))
-  else
-     model:add(utils.makeDataParallelTable(net, opt.nGPU))
-  end
-else
-  model:add(net)
-end
-
-local function cast(x) return x:type(opt.data_type) end
-
-cast(model)
+-- Load model
+model, criterion = paths.dofile('model.lua') 
