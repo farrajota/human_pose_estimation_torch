@@ -27,5 +27,7 @@ model_list['hg-generic-rnn-inception']  = paths.dofile('hg-generic-rnn-deception
 model_list['hg-generic-rnn-maxpool']    = paths.dofile('hg-generic-rnn-maxpool.lua')
 model_list['hg-generic-rnn-twin']       = paths.dofile('hg-generic-rnn-twin.lua')
 
+-- Concat sets
+
 
 return model_list

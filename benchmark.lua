@@ -9,7 +9,6 @@
 
 require 'paths'
 require 'torch'
-require 'hdf5'
 require 'image'
 require 'xlua'
 require 'nn'
@@ -47,6 +46,7 @@ cmd:option('-manualSeed',      2, 'Manually set RNG seed')
 cmd:option('-GPU',             1, 'Default preferred GPU (-1 = use CPU)')
 cmd:option('-nGPU',            1, 'Number of GPUs to use by default')
 cmd:option('-threshold',     0.5, 'PCKh threshold (default 0.5)')
+cmd:option('-predictions',     0, 'Generate a predictions file (0-false | 1-true)')
 cmd:text()
 cmd:text(' ---------- Model options --------------------------------------')
 cmd:text()

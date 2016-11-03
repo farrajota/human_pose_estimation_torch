@@ -30,49 +30,41 @@ print('Optimizer: '..opt.optMethod)
 print('**********************\n')
 
 
---[[
-paths.dofile('data.lua')
-local data=loadDataset()
-a,b = loadData(dataset.train, 19)
---a,b = loadData('train', 150, 2)
-aqui=1
---]]
-
 --------------------------------------------------------------------------------
 -- Setup data generator
 --------------------------------------------------------------------------------
 
 local function getIterator(mode)
-   return tnt.ParallelDatasetIterator{
-      nthread = opt.nThreads,
-      init    = function(threadid) 
-                  require 'torch'
-                  require 'torchnet'
-                  opt = lopt
-                  paths.dofile('data.lua')
-                  torch.manualSeed(threadid+opt.manualSeed)
-                end,
-      closure = function()
+    return tnt.ParallelDatasetIterator{
+        nthread = opt.nThreads,
+        init    = function(threadid) 
+                    require 'torch'
+                    require 'torchnet'
+                    opt = lopt
+                    paths.dofile('data.lua')
+                    torch.manualSeed(threadid+opt.manualSeed)
+                  end,
+        closure = function()
           
-          -- setup data
-          local data = dataset[mode]
+            -- setup data
+            local data = dataset[mode]
           
-          -- number of iterations
-          local nIters = (mode == 'train' and nBatchesTrain) or (mode == 'val' and nBatchesTest)
+            -- number of iterations
+            local nIters = (mode == 'train' and nBatchesTrain) or (mode == 'val' and nBatchesTest)
           
-          -- setup dataset iterator
-          return tnt.ListDataset{  -- replace this by your own dataset
-              list = torch.range(1, nIters):long(),
-              load = function(idx)
-                  local input, label = getSampleBatch(data, mode)
-                      return {
-                          input = input,
-                          target = label
-                      }
-              end
-          }:batch(1, 'include-last')
-      end,
-   }
+            -- setup dataset iterator
+            return tnt.ListDataset{  -- replace this by your own dataset
+                list = torch.range(1, nIters):long(),
+                load = function(idx)
+                    local input, label = getSampleBatch(data, mode)
+                        return {
+                            input = input,
+                            target = label
+                        }
+                end
+            }:batch(1, 'include-last')
+        end,
+    }
 end
 
 
@@ -81,23 +73,23 @@ end
 --------------------------------------------------------------------------------
 
 local meters = {
-   train_err = tnt.AverageValueMeter(),
-   train_accu = tnt.AverageValueMeter(),
-   valid_err = tnt.AverageValueMeter(),
-   valid_accu = tnt.AverageValueMeter(),
+    train_err = tnt.AverageValueMeter(),
+    train_accu = tnt.AverageValueMeter(),
+    valid_err = tnt.AverageValueMeter(),
+    valid_accu = tnt.AverageValueMeter(),
 }
 
 function meters:reset()
-   self.train_err:reset()
-   self.train_accu:reset()
-   self.valid_err:reset()
-   self.valid_accu:reset()
+    self.train_err:reset()
+    self.train_accu:reset()
+    self.valid_err:reset()
+    self.valid_accu:reset()
 end
 
 local loggers = {
-   valid = optim.Logger(paths.concat(opt.save,'valid.log')),
-   train = optim.Logger(paths.concat(opt.save,'train.log')),
-   full_train = optim.Logger(paths.concat(opt.save,'full_train.log')),
+    valid = optim.Logger(paths.concat(opt.save,'valid.log')),
+    train = optim.Logger(paths.concat(opt.save,'train.log')),
+    full_train = optim.Logger(paths.concat(opt.save,'full_train.log')),
 }
 
 loggers.valid:setNames{'Valid Loss', 'Valid acc.'}
@@ -113,12 +105,12 @@ loggers.full_train.showPlot = false
 local engine = tnt.OptimEngine()
 
 engine.hooks.onStart = function(state)
-   if state.training then
-      state.config = optimStateFn(state.epoch+1)
-      if opt.iniEpoch>1 then 
-         state.epoch = math.max(opt.iniEpoch, state.epoch)
-      end
-   end
+    if state.training then
+        state.config = optimStateFn(state.epoch+1)
+        if opt.iniEpoch>1 then 
+            state.epoch = math.max(opt.iniEpoch, state.epoch)
+        end
+    end
 end
 
 
@@ -166,30 +158,30 @@ end
 
 
 engine.hooks.onEndEpoch = function(state)
-   print(('Train Loss: %0.5f; Acc: %0.5f'):format(meters.train_err:value(),  meters.train_accu:value()))
-   -- measure test loss and error:
-   local tr_loss = meters.train_err:value()
-   local tr_accuracy = meters.train_accu:value()
-   loggers.train:add{tr_loss, tr_accuracy}
-   meters:reset()
-   state.t = 0
-   
-   print('\n**********************************************')
-   print(('Test network (epoch = %d/%d)'):format(state.epoch, state.maxepoch))
-   print('**********************************************')
-   engine:test{
-      network   = model,
-      iterator  = getIterator('val'),
-      criterion = criterion,
-   }
-   local vl_loss = meters.valid_err:value()
-   local vl_accuracy = meters.valid_accu:value()
-   loggers.valid:add{vl_loss, vl_accuracy}
-   print(('Validation Loss: %0.5f; Acc: %0.5f'):format(meters.valid_err:value(),  meters.valid_accu:value()))
-   
-   -- store model
-   storeModel(state.network.modules[1], state.config, state.epoch, opt)
-   state.t = 0
+    print(('Train Loss: %0.5f; Acc: %0.5f'):format(meters.train_err:value(),  meters.train_accu:value()))
+    -- measure test loss and error:
+    local tr_loss = meters.train_err:value()
+    local tr_accuracy = meters.train_accu:value()
+    loggers.train:add{tr_loss, tr_accuracy}
+    meters:reset()
+    state.t = 0
+    
+    print('\n**********************************************')
+    print(('Test network (epoch = %d/%d)'):format(state.epoch, state.maxepoch))
+    print('**********************************************')
+    engine:test{
+        network   = model,
+        iterator  = getIterator('val'),
+        criterion = criterion,
+    }
+    local vl_loss = meters.valid_err:value()
+    local vl_accuracy = meters.valid_accu:value()
+    loggers.valid:add{vl_loss, vl_accuracy}
+    print(('Validation Loss: %0.5f; Acc: %0.5f'):format(meters.valid_err:value(),  meters.valid_accu:value()))
+    
+    -- store model
+    storeModel(state.network.modules[1], state.config, state.epoch, opt)
+    state.t = 0
 end
 
 
@@ -198,12 +190,12 @@ end
 --------------------------------------------------------------------------------
 print('==> Train network model')
 engine:train{
-   network   = model,
-   iterator  = getIterator('train'),
-   criterion = criterion,
-   optimMethod = optim[opt.optMethod],
-   config = optimStateFn(1),
-   maxepoch = nEpochs
+    network   = model,
+    iterator  = getIterator('train'),
+    criterion = criterion,
+    optimMethod = optim[opt.optMethod],
+    config = optimStateFn(1),
+    maxepoch = nEpochs
 }
 
 
@@ -212,7 +204,7 @@ engine:train{
 --------------------------------------------------------------------------------
 print('==> Saving final model to disk: ' .. paths.concat(opt.save,'final_model.t7'))
 utils.saveDataParallel(paths.concat(opt.save,'final_model.t7'), model.modules[1]:clearState())
-torch.save(paths.concat(opt.save,'final_optimState.t7'), optimStateFn(opt,nEpochs))
+torch.save(paths.concat(opt.save,'final_optimState.t7'), optimStateFn(nEpochs))
 loggers.valid:style{'+-', '+-'}; loggers.valid:plot()
 loggers.train:style{'+-', '+-'}; loggers.train:plot()
 loggers.full_train:style{'-', '-'}; loggers.full_train:plot()

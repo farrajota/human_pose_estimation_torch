@@ -12,7 +12,6 @@ require 'optim'
 require 'nn'
 require 'nnx'
 require 'nngraph'
-require 'hdf5'
 require 'string'
 require 'image'
 require 'cutorch'
@@ -37,7 +36,7 @@ paths.dofile('projectdir.lua')
 
 if not opt then
 
-  local opts = paths.dofile('opts.lua')
+  local opts = paths.dofile('options.lua')
   opt = opts.parse(arg)
 
   print('Saving everything to: ' .. opt.save)

@@ -9,7 +9,6 @@ require 'optim'
 require 'nn'
 require 'nnx'
 require 'nngraph'
-require 'hdf5'
 require 'string'
 require 'image'
 
@@ -211,7 +210,7 @@ function loadData(data, mode)
     end
     
     -- normalize mean/std
-    img_transf = t.ColorNormalize(opt.meanstd)(img_transf)
+    --img_transf = t.ColorNormalize(opt.meanstd)(img_transf)
     
     -- output
     return img_transf, heatmap

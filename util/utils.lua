@@ -136,6 +136,19 @@ end
 
 ------------------------------------------------------------------------------------------------------------
 
+local function ConcatTables(tableA, tableB) -- convert a string into a table 
+    local tableOut = {}
+    for i=1, #tableA do
+        table.insert(tableOut, tableA[i])
+    end
+    for i=1, #tableB do
+        table.insert(tableOut, tableB[i])
+    end
+    return tableOut
+end
+
+------------------------------------------------------------------------------------------------------------
+
 return {
    MSRinit = MSRinit,
    FCinit = FCinit,
@@ -148,4 +161,5 @@ return {
    -- table operations 
    ReplicateTensor2Table = ReplicateTensor2Table,
    Str2TableFn = Str2TableFn,
+   ConcatTables = ConcatTables,
 }
