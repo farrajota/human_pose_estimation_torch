@@ -34,6 +34,18 @@ end
 
 ------------------------------------------------------------------------------------------------------------
 
+local function cleanDPT(module)
+   -- This assumes this DPT was created by the function above: all the
+   -- module.modules are clones of the same network on different GPUs
+   -- hence we only need to keep one when saving the model to the disk.
+   local newDPT = nn.DataParallelTable(1, true, true)
+   cutorch.setDevice(opt.GPU)
+   newDPT:add(module:get(1), opt.GPU)
+   return newDPT
+end
+
+------------------------------------------------------------------------------------------------------------
+
 local function makeDataParallelTable(model, nGPU)
    if nGPU > 1 then
       local gpus = torch.range(1, nGPU):totable()
@@ -58,23 +70,13 @@ end
 
 ------------------------------------------------------------------------------------------------------------
 
-local function cleanDPT(module)
-   -- This assumes this DPT was created by the function above: all the
-   -- module.modules are clones of the same network on different GPUs
-   -- hence we only need to keep one when saving the model to the disk.
-   local newDPT = nn.DataParallelTable(1, true, true)
-   cutorch.setDevice(opt.GPU)
-   newDPT:add(module:get(1), opt.GPU)
-   return newDPT
-end
-
-------------------------------------------------------------------------------------------------------------
-
 local function saveDataParallel(filename, model)
    if torch.type(model) == 'nn.DataParallelTable' then
       --torch.save(filename, cleanDPT(model))
       torch.save(filename, model.modules[1])
-   elseif torch.type(model) == 'nn.Sequential' or torch.type(model) == 'nn.gModule' then
+   elseif torch.type(model) == 'nn.gModule' then
+      torch.save(filename, model)
+   elseif torch.type(model) == 'nn.Sequential' then
       local temp_model = nn.Sequential()
       for i, module in ipairs(model.modules) do
          if torch.type(module) == 'nn.DataParallelTable' then
@@ -97,7 +99,9 @@ local function loadDataParallel(model, nGPU)
    --end
    if torch.type(model) == 'nn.DataParallelTable' then
       return makeDataParallelTable(model:get(1):float(), nGPU)
-   elseif torch.type(model) == 'nn.Sequential' or torch.type(model) == 'nn.gModule' then
+   elseif torch.type(model) == 'nn.gModule' then
+      return makeDataParallelTable(model, nGPU)
+   elseif torch.type(model) == 'nn.Sequential' then
       for i,module in ipairs(model.modules) do
          if torch.type(module) == 'nn.DataParallelTable' then
             model.modules[i] = makeDataParallelTable(module:get(1):float(), nGPU)
@@ -149,6 +153,26 @@ end
 
 ------------------------------------------------------------------------------------------------------------
 
+local function ConvertString2Boolean(var) -- converts string to booleans
+    if type(var) == 'string' then
+        local str = string.lower(var):gsub("%s+", "")
+        str = string.gsub(str, "%s+", "")
+        if str == 'true' then
+            return true
+        elseif str == 'false' then
+            return false
+        else
+            error('Cannot convert input to boolean type: ' .. var)
+        end
+    elseif type(var) == 'boolean' then
+        return var
+    else
+        error('Input variable is not of string/boolean type: ' .. type(var))
+    end
+end
+
+------------------------------------------------------------------------------------------------------------
+
 return {
    MSRinit = MSRinit,
    FCinit = FCinit,
@@ -162,4 +186,5 @@ return {
    ReplicateTensor2Table = ReplicateTensor2Table,
    Str2TableFn = Str2TableFn,
    ConcatTables = ConcatTables,
+   Str2Bool = ConvertString2Boolean,
 }

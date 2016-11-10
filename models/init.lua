@@ -6,11 +6,13 @@ local model_list = {}
 
 -- stacked
 model_list['hg-stacked']        = paths.dofile('hg-stacked.lua')
-model_list['hg-stackedV2']        = paths.dofile('hg-stackedV2.lua')
-model_list['hg-stacked-wide']        = paths.dofile('hg-stacked-wide.lua')
+model_list['hg-stackedV2']      = paths.dofile('hg-stackedV2.lua')
+model_list['hg-stacked-wide']   = paths.dofile('hg-stacked-wide.lua')
 model_list['hg-stacked-no-int'] = paths.dofile('hg-stacked-no-int.lua')
 -- generic
 model_list['hg-generic'] = paths.dofile('hg-generic.lua')
+model_list['hg-genericv2'] = paths.dofile('hg-genericv2.lua')
+model_list['hg-genericv3'] = paths.dofile('hg-genericv3.lua')
 -- modified generic
 model_list['hg-generic-deconv']     = paths.dofile('hg-generic-deconv.lua')
 model_list['hg-generic-maxpool']    = paths.dofile('hg-generic-maxpool.lua')
@@ -28,6 +30,10 @@ model_list['hg-generic-rnn-maxpool']    = paths.dofile('hg-generic-rnn-maxpool.l
 model_list['hg-generic-rnn-twin']       = paths.dofile('hg-generic-rnn-twin.lua')
 
 -- Concat sets
-
+model_list['hg-generic-concatv1']     = paths.dofile('hg-generic-concatv1.lua')
+model_list['hg-generic-concatv2']     = paths.dofile('hg-generic-concatv2.lua')
+model_list['hg-generic-bypass']       = paths.dofile('hg-generic-bypass.lua')
+model_list['hg-generic-bypassdense']  = paths.dofile('hg-generic-bypassdense.lua')
+model_list['hg-generic-concatdense']  = paths.dofile('hg-generic-concatdense.lua')
 
 return model_list

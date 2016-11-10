@@ -41,20 +41,36 @@ end
 --------------------------------------------------------------------------------
 local criterion
 if opt.nOutputs > 1 then
-   criterion = nn.ParallelCriterion()
-   for i=1, opt.nOutputs do
-      if string.match('MSE', string.upper(opt.crit)) then
-         criterion:add(nn.MSECriterion())
-      elseif string.match('smoothl1', string.lower(opt.crit)) then
-         criterion:add(nn.SmoothL1Criterion())
-      end
-   end
+    criterion = nn.ParallelCriterion()
+    
+    local limits = {1,2}
+    local w
+    elseif opt.critweights == 'linear' then
+        w = torch.linspace(limits[1], limits[2], opt.nOutputs)
+    elseif opt.critweights == 'steep' then
+        w = torch.linspace(limits[1], limits[2]*5, opt.nOutputs)
+    elseif opt.critweights == 'log' then
+        w = torch.linspace(limits[1], limits[2], opt.nOutputs):mul(2):log()
+    elseif opt.critweights == 'exp' then
+        w = torch.linspace(limits[1], limits[2], opt.nOutputs):exp()
+    else
+        w = torch.IntTensor(opt.nOutputs):fill(1)
+    end
+    
+    for i=1, opt.nOutputs do
+        local weight = w[i]
+        if string.match('MSE', string.upper(opt.crit)) then
+            criterion:add(nn.MSECriterion(), weight)
+        elseif string.match('smoothl1', string.lower(opt.crit)) then
+            criterion:add(nn.SmoothL1Criterion(), weight)
+        end
+    end
 else
-   if string.match('MSE', string.upper(opt.crit)) then
-      criterion = nn.MSECriterion()
-   elseif string.match('smoothl1', string.lower(opt.crit)) then
-      criterion = nn.SmoothL1Criterion()
-   end
+    if string.match('MSE', string.upper(opt.crit)) then
+        criterion = nn.MSECriterion()
+    elseif string.match('smoothl1', string.lower(opt.crit)) then
+        criterion = nn.SmoothL1Criterion()
+    end
 end
 
 
@@ -63,27 +79,27 @@ end
 --------------------------------------------------------------------------------
 
 if opt.GPU >= 1 then
-   print('Running on GPU: [' .. opt.nGPU .. ']')
-   require 'cutorch'
-   require 'cunn'
-   model:cuda()
-   criterion:cuda()
+    print('Running on GPU: [' .. opt.nGPU .. ']')
+    require 'cutorch'
+    require 'cunn'
+    model:cuda()
+    criterion:cuda()
   
    -- require cudnn if available
-   if pcall(require, 'cudnn') then
-     cudnn.convert(model, cudnn):cuda()
-     cudnn.benchmark = true
-     if opt.cudnn_deterministic then
-        model:apply(function(m) if m.setMode then m:setMode(1,1,1) end end)
-     end
-     print('Network has', #model:findModules'cudnn.SpatialConvolution', 'cudnn convolutions')
-   end
-   opt.dataType = 'torch.CudaTensor'
+    if pcall(require, 'cudnn') then
+        cudnn.convert(model, cudnn):cuda()
+        cudnn.benchmark = true
+        if opt.cudnn_deterministic then
+            model:apply(function(m) if m.setMode then m:setMode(1,1,1) end end)
+        end
+        print('Network has', #model:findModules'cudnn.SpatialConvolution', 'cudnn convolutions')
+    end
+    opt.dataType = 'torch.CudaTensor'
 else
-   print('Running on CPU')
-   model:float()
-   criterion:float()
-   opt.dataType = 'torch.FloatTensor'
+    print('Running on CPU')
+    model:float()
+    criterion:float()
+    opt.dataType = 'torch.FloatTensor'
 end
 
 

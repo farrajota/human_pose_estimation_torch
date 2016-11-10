@@ -3,6 +3,20 @@
 ]]
 
 
+function calcDistsOne(preds, label, normalize)
+    local dists = torch.Tensor(preds:size(1))
+    for i = 1,preds:size(1) do
+        if label[i][1] > 1 and label[i][2] > 1 then
+            dists[i] = torch.dist(label[i],preds[i])/normalize
+        else
+            dists[i] = -1
+        end
+    end
+    return dists
+end
+
+------------------------------------------------------------------------------------------------------------
+
 function calcDists(preds, label, normalize)
     local dists = torch.Tensor(preds:size(2), preds:size(1))
     local diff = torch.Tensor(2)
@@ -56,7 +70,7 @@ end
 function distAccuracy(dists, thr)
     -- Return percentage below threshold while ignoring values with a -1
     if not thr then thr = .5 end
-    if torch.ne(dists,-1):sum () > 0 then
+    if torch.ne(dists,-1):sum() > 0 then
         return dists:le(thr):eq(dists:ne(-1)):sum() / dists:ne(-1):sum()
     else
         return -1
@@ -115,22 +129,23 @@ end
 
 ------------------------------------------------------------------------------------------------------------
 
-function displayPCK(dists, part_idx, label, title, show_key)
+function displayPCK(dists, part_idx, label, title, threshold, show_key)
     -- Generate standard PCK plot
     if not (type(part_idx) == 'table') then
         part_idx = {part_idx}
     end
 
-    curve_res = 11
-    num_curves = #dists
-    local t = torch.linspace(0,.5,curve_res)
+    local thresh = threshold or 0.5
+    local curve_res = 11
+    local num_curves = #dists
+    local t = torch.linspace(0,1,curve_res)*thresh
     local pdj_scores = torch.zeros(num_curves, curve_res)
     local plot_args = {}
     local results = {}
     print(title)
     for curve = 1,num_curves do
         for i = 1,curve_res do
-            t[i] = (i-1)*.05
+            --t[i] = (i-1)*.05
             local acc = 0.0
             for j = 1,#part_idx do
                 acc = acc + distAccuracy(dists[curve][part_idx[j]], t[i])
@@ -146,7 +161,7 @@ function displayPCK(dists, part_idx, label, title, show_key)
     gnuplot.raw('set title "' .. title .. '"')
     if not show_key then gnuplot.raw('unset key') 
     else gnuplot.raw('set key font ",6" right bottom') end
-    gnuplot.raw('set xrange [0:.5]')
+    gnuplot.raw(('set xrange [0:%.2f]'):format(thresh))
     gnuplot.raw('set yrange [0:1]')
     gnuplot.plot(unpack(plot_args))
     

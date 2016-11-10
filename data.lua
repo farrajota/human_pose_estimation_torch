@@ -36,6 +36,8 @@ local function MPIILoadImgKeypointsFn(data, idx)
     local center = data.objpos[object[5]]
     local scale = data.scale[object[4]]
     local nJoints = keypoints:size(1)/3
+    local head_coord = data.head_coord[object[6]]
+    local normalize = torch.FloatTensor({head_coord[3]-head_coord[1], head_coord[4]-head_coord[2]}):norm() * 0.6 
     
     -- Small adjustment so cropping is less likely to take feet out
     center[2] = center[2] + 15 * scale
@@ -45,7 +47,7 @@ local function MPIILoadImgKeypointsFn(data, idx)
     local img = image.load(filename,3,'float')
     
     -- image, keypoints, center coords, scale, number of joints
-    return img, keypoints:view(nJoints, 3), center, scale, nJoints
+    return img, keypoints:narrow(2,1,2), center, scale, nJoints, normalize 
 end
 
 -- flic
@@ -57,12 +59,13 @@ local function FLICLoadImgKeypointsFn(data, idx)
     local center = torch.FloatTensor({(torso[1]+torso[3])/2, (torso[2]+torso[4])/2})
     local scale = 2.2
     local nJoints = keypoints:size(1)/3
+    local normalize = torch.FloatTensor({torso[3]-torso[1], torso[4]-torso[2]}):norm()
     
     -- Load image
     local img = image.load(filename,3,'float')
     
     -- image, keypoints, center coords, scale, number of joints
-    return img, keypoints:view(nJoints, 3), center, scale, nJoints
+    return img, keypoints:view(nJoints, 3), center, scale, nJoints, normalize
 end
 
 -- leeds sports
@@ -136,31 +139,33 @@ end
 -- Transform image
 -------------------------------------------------------------------------------
 
-local function ImageTransform(img, opt, mode)
-    local output = img:clone()
-    local is_flipped = false
+function loadDataBenchmark(idx, data, mode)
+  
+    -- inits
+    local r = 0 -- set rotation to 0
     
-    -- apply image transformations
-    
-    output = t.Fix()(output) -- fix channels
-    output = t.Scale(opt.imageSize)(output) -- scale
-    
-    
-    if mode == 'train' then
-        output = t.RandomCrop(opt.inputRes)(output) -- random crop
-        --output = t.ColorNormalize({mean = opt.meanstd.mean, std = opt.meanstd.std})(output)
-        if torch.uniform() > 0.5 then
-            output =  t.HorizontalFlip(1)(output)
-            is_flipped = true
+    -- Load image + keypoints + other data
+    local img, keypoints, c, s, nJoints, normalize = loadImgKeypointsFn(data, idx)
+
+    -- Crop image + craft heatmap
+    local img_transf = crop2(img, c, s, r, opt.inputRes)
+    local heatmap = torch.zeros(nJoints, opt.outputRes, opt.outputRes)
+    for i = 1,nJoints do
+        if keypoints[i][1] > 1 then -- Checks that there is a ground truth annotation
+            drawGaussian(heatmap[i], transform(torch.add(keypoints[i],1), c, s, r, opt.outputRes), 1)
         end
-        
-    else
-        output = t.CenterCrop(opt.cropSize)(output)
-        --output = t.ColorNormalize({mean = opt.meanstd.mean, std = opt.meanstd.std})(output)
-        
     end
+
+    --local meanstd = {mean={0.25607767449153,0.23222393443673, 0.2148381369845}, std={0.2086786306043,0.19715121058158,0.19158156380364}}
     
-    return output, is_flipped
+    --for i=1, 3 do
+    --    img_transf[i]:add(-meanstd.mean[i]):div(meanstd.std[i])
+    --end
+    
+
+    -- output
+    -- input, label, center, scale, normalize
+    return img_transf, keypoints:narrow(2,1,2), c, s, normalize
 end
 
 
@@ -168,21 +173,27 @@ end
 -- Load data for one object in the train/test data
 -------------------------------------------------------------------------------
 
-function loadData(data, mode)
+function loadData(idx, data, mode)
   
     -- inits
     local r = 0 -- set rotation to 0
     
     -- Load image + keypoints + other data
-    local idx = torch.random(1, data.object:size(1))
     local img, keypoints, c, s, nJoints = loadImgKeypointsFn(data, idx)
+    
+    if opt.centerjit > 0 then
+        local offset = c:clone():random(-opt.centerjit, opt.centerjit)
+        c = c:add(offset)
+    end
+    
     
     -- Do rotation + scaling
     if mode == 'train' then
         -- Scale and rotation augmentation
         s = s * (2 ^ rnd(opt.scale))
         r = rnd(opt.rotate)
-        if torch.uniform() <= .6 then r = 0 end
+        --if torch.uniform() <= .6 then r = 0 end
+        if torch.uniform() <= opt.rotRate then r = 0 end
     end
 
     -- Crop image + craft heatmap
@@ -202,15 +213,33 @@ function loadData(data, mode)
             heatmap = shuffleLR(flip(heatmap))
         end
         -- color augmentation
-        --img_transf = ColorJitter(opt)(img_transf)
-        img_transf[1]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
-        img_transf[2]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
-        img_transf[3]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
-        
+        if opt.colourjit then
+            local opts_jit = {brightness = 0.4,contrast = 0.4,saturation = 0.4}
+            img_transf = t.ColorJitter(opts_jit)(img_transf)
+        else
+            img_transf[1]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
+            img_transf[2]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
+            img_transf[3]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
+        end
     end
     
+    if opt.pca then
+        local pca = {
+           eigval = torch.Tensor{ 0.2175, 0.0188, 0.0045 },
+           eigvec = torch.Tensor{
+              { -0.5675,  0.7192,  0.4009 },
+              { -0.5808, -0.0045, -0.8140 },
+              { -0.5836, -0.6948,  0.4203 },
+           },
+        }
+        img_transf = t.Lighting(0.1, pca.eigval, pca.eigvec)(img_transf)
+    end
+    
+    
     -- normalize mean/std
-    --img_transf = t.ColorNormalize(opt.meanstd)(img_transf)
+    if opt.colourNorm then
+        img_transf = t.ColorNormalize(opt.meanstd)(img_transf)
+    end
     
     -- output
     return img_transf, heatmap
@@ -227,7 +256,8 @@ function getSampleBatch(data, mode, batchSize)
     
     -- get batch data
     for i=1, batchSize do
-        table.insert(sample, {loadData(data, mode)})
+        local idx = torch.random(1, data.object:size(1))
+        table.insert(sample, {loadData(idx, data, mode)})
     end
     
     -- concatenate data

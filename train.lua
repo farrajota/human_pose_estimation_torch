@@ -53,14 +53,14 @@ local function getIterator(mode)
             local nIters = (mode == 'train' and nBatchesTrain) or (mode == 'val' and nBatchesTest)
           
             -- setup dataset iterator
-            return tnt.ListDataset{  -- replace this by your own dataset
+            return tnt.ListDataset{
                 list = torch.range(1, nIters):long(),
                 load = function(idx)
                     local input, label = getSampleBatch(data, mode)
-                        return {
-                            input = input,
-                            target = label
-                        }
+                    return {
+                        input = input,
+                        target = label
+                    }
                 end
             }:batch(1, 'include-last')
         end,
@@ -116,7 +116,7 @@ end
 
 engine.hooks.onStartEpoch = function(state)
     print('\n**********************************************')
-    print(('Starting Train epoch %d/%d'):format(state.epoch+1, state.maxepoch))
+    print(('Starting Train epoch %d/%d  %s'):format(state.epoch+1, state.maxepoch,  opt.save))
     print('**********************************************')
     state.config = optimStateFn(state.epoch+1)
 end

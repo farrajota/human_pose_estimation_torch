@@ -4,13 +4,13 @@ local relu = nn.ReLU
 
 -- Main convolutional block
 local function convBlock(numIn,numOut)
-    return nn.Sequential()
+  return nn.Sequential()
         :add(batchnorm(numIn))
         :add(relu(true))
         :add(conv(numIn,numOut/2,1,1))
         :add(batchnorm(numOut/2))
         :add(relu(true))
-        :add(nn.Dropout(opt.dropout))
+        :add(nn.SpatialDropout(opt.spatialdropout))
         :add(conv(numOut/2,numOut/2,3,3,1,1,1,1))
         :add(batchnorm(numOut/2))
         :add(relu(true))

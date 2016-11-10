@@ -180,7 +180,7 @@ else
     torch.save(fname_meanstd, meanstd)
     opt.meanstd = meanstd
 end
-print(opt.meanstd)
+--print(opt.meanstd)
 
 -------------------------------------------------------------------------------
 -- Load model + criterion
