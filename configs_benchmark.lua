@@ -28,7 +28,7 @@ torch.setdefaulttensortype('torch.FloatTensor')
 
 -- Project directory
 paths.dofile('projectdir.lua')
-
+paths.dofile('modules/NoBackprop.lua')
 --------------------------------------------------------------------------------
 -- Load options
 --------------------------------------------------------------------------------

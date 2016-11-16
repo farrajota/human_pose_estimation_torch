@@ -99,10 +99,14 @@ local predictions, distances = {}, {}
 engine.hooks.onForward= function(state)
     xlua.progress(state.t, nSamples)
     
-    local num_outputs = #state.network.output
-    
-     -- fetch predictions of body joints from the last output
-    local output = state.network.output[num_outputs][1]:float()
+    -- fetch predictions of body joints from the last output
+    local output
+    if type(state.network.output) == 'table' then
+        local num_outputs = #state.network.output
+        output = state.network.output[num_outputs][1]:float()
+    else
+        output = state.network.output[1]:float()
+    end
     
     -- clamp negatives values to 0
     output[output:lt(0)] = 0

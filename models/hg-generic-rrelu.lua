@@ -1,4 +1,4 @@
-paths.dofile('layers/Residual.lua')
+paths.dofile('layers/ResidualV3.lua')
 
 local function hourglass(n, f, inp)
     -- Upper branch
@@ -22,7 +22,7 @@ end
 local function lin(numIn,numOut,inp)
     -- Apply 1x1 convolution, stride 1, no padding
     local l = nn.SpatialConvolution(numIn,numOut,1,1,1,1,0,0)(inp)
-    return nn.ReLU(true)(nn.SpatialBatchNormalization(numOut)(l))
+    return nn.RReLU()(nn.SpatialBatchNormalization(numOut)(l))
 end
 
 local function createModel()
@@ -31,7 +31,7 @@ local function createModel()
 
     -- Initial processing of the image
     local cnv1_ = nn.SpatialConvolution(3,64,7,7,2,2,3,3)(inp)           -- 128
-    local cnv1 = nn.ReLU(true)(nn.SpatialBatchNormalization(64)(cnv1_))
+    local cnv1 = nn.RReLU()(nn.SpatialBatchNormalization(64)(cnv1_))
     local r1 = Residual(64,128)(cnv1)
     local pool = nn.SpatialMaxPooling(2,2,2,2)(r1)                       -- 64
     local r4 = Residual(128,128)(pool)
@@ -40,30 +40,17 @@ local function createModel()
     local out = {}
     local inter = r5
 
-    local prev_ll = {}
-    
-    local ll_concat
-    local inputFeats = opt.nFeats
     for i = 1,opt.nStack do
         local hg = hourglass(4,opt.nFeats,inter)
-        
+
         -- Linear layer to produce first set of predictions
         local ll = lin(opt.nFeats,opt.nFeats,hg)
-        
-        if i > 1 then
-            ll_concat = nn.JoinTable(2)({prev_ll, ll})
-            inputFeats = opt.nFeats*2
-        else
-            ll_concat = ll
-            inputFeats = opt.nFeats
-        end
 
         -- Predicted heatmaps
-        local tmpOut = nn.SpatialConvolution(inputFeats,outputDim[1][1],1,1,1,1,0,0)(ll_concat)
+        local tmpOut = nn.SpatialConvolution(opt.nFeats,outputDim[1][1],1,1,1,1,0,0)(ll)
         table.insert(out,tmpOut)
 
         if i < opt.nStack then inter = nn.CAddTable()({inter, hg}) end
-        prev_ll = ll
     end
 
     -- Final model

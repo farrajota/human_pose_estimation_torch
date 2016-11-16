@@ -53,12 +53,11 @@ local function createModel()
         
         if i > 1 then
             local concat = nn.JoinTable(2)({tmpOut,out[#out]})
-            table.insert(out,concat)
+            local tmpOut2 = nn.SpatialConvolution(outputDim[1][1]*2,outputDim[1][1],1,1,1,1,0,0)(concat)
+            table.insert(out,tmpOut2)
         else
             table.insert(out,tmpOut)
         end
-        
-        table.insert(out,tmpOut)
 
         if i < opt.nStack then inter = nn.CAddTable()({inter, hg}) end
         hg_prev = hg

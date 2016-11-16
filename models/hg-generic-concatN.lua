@@ -38,32 +38,33 @@ local function createModel()
     local r5 = Residual(128,opt.nFeats)(r4)
 
     local out = {}
+    local prev = {}
     local inter = r5
-
-    local prev_ll = {}
     
-    local ll_concat
-    local inputFeats = opt.nFeats
+    local N=2
+
     for i = 1,opt.nStack do
         local hg = hourglass(4,opt.nFeats,inter)
         
         -- Linear layer to produce first set of predictions
         local ll = lin(opt.nFeats,opt.nFeats,hg)
-        
-        if i > 1 then
-            ll_concat = nn.JoinTable(2)({prev_ll, ll})
-            inputFeats = opt.nFeats*2
-        else
-            ll_concat = ll
-            inputFeats = opt.nFeats
-        end
 
         -- Predicted heatmaps
-        local tmpOut = nn.SpatialConvolution(inputFeats,outputDim[1][1],1,1,1,1,0,0)(ll_concat)
-        table.insert(out,tmpOut)
-
+        local tmpOut = nn.SpatialConvolution(opt.nFeats,outputDim[1][1],1,1,1,1,0,0)(ll)
+        
+        if i > 1 then
+            local prev = {tmpOut}
+            for i=0, math.min(#out-1,N-1) do 
+                table.insert(prev,out[#out-i])
+            end
+            local concat = nn.JoinTable(2)(prev)
+            local tmpOut_concat = nn.SpatialConvolution(outputDim[1][1]*#prev,outputDim[1][1],1,1,1,1,0,0)(concat)
+            table.insert(out,tmpOut_concat)
+        else
+            table.insert(out,tmpOut)
+        end
+        
         if i < opt.nStack then inter = nn.CAddTable()({inter, hg}) end
-        prev_ll = ll
     end
 
     -- Final model

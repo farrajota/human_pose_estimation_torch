@@ -25,6 +25,12 @@ local function lin(numIn,numOut,inp)
     return nn.ReLU(true)(nn.SpatialBatchNormalization(numOut)(l))
 end
 
+local function lin2(numIn,numOut,inp)
+    -- Apply 1x1 convolution, stride 1, no padding
+    local bn_relu = nn.ReLU(true)(nn.SpatialBatchNormalization(numIn)(inp))
+    return nn.SpatialConvolution(numIn,numOut,1,1,1,1,0,0)(bn_relu)
+end
+
 local function createModel()
 
     local inp = nn.Identity()()
@@ -40,31 +46,25 @@ local function createModel()
     local out = {}
     local inter = r5
 
-    local prev_ll = {}
-    
-    local ll_concat
-    local inputFeats = opt.nFeats
     for i = 1,opt.nStack do
         local hg = hourglass(4,opt.nFeats,inter)
-        
+
         -- Linear layer to produce first set of predictions
         local ll = lin(opt.nFeats,opt.nFeats,hg)
-        
-        if i > 1 then
-            ll_concat = nn.JoinTable(2)({prev_ll, ll})
-            inputFeats = opt.nFeats*2
-        else
-            ll_concat = ll
-            inputFeats = opt.nFeats
-        end
 
         -- Predicted heatmaps
-        local tmpOut = nn.SpatialConvolution(inputFeats,outputDim[1][1],1,1,1,1,0,0)(ll_concat)
+        local tmpOut = nn.SpatialConvolution(opt.nFeats,outputDim[1][1],1,1,1,1,0,0)(ll)
         table.insert(out,tmpOut)
 
         if i < opt.nStack then inter = nn.CAddTable()({inter, hg}) end
-        prev_ll = ll
     end
+    
+    local concat_outputs = nn.JoinTable(2)(out)
+    local ll1 = lin2(outputDim[1][1]*opt.nStack , 512, concat_outputs)
+    local ll2 = lin2(512, outputDim[1][1], ll1)
+    
+    table.insert(out, ll2)
+    opt.nOutputs = opt.nStack+1
 
     -- Final model
     local model = nn.gModule({inp}, out)

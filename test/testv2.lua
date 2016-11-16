@@ -53,17 +53,16 @@ local scripts = {
 {expID = 'hg-generic'..nstacks..'-concatv2', netType = 'hg-generic-concatv2', colourNorm='false', colourjit='false', centerjit=0, pca='false', dropout=0, spatialdropout=0, critweights='false', inputRes=256},
 
 -- 5. higher rate of rotation
-{expID = 'hg-generic'..nstacks..'-rotate', netType = 'hg-generic', colourNorm='false', colourjit='false', centerjit=0, pca='false', dropout=0, spatialdropout=0, critweights='false', inputRes=256, opt.rotRate=0.2},
+{expID = 'hg-generic'..nstacks..'-rotate', netType = 'hg-generic', colourNorm='false', colourjit='false', centerjit=0, pca='false', dropout=0, spatialdropout=0, critweights='false', inputRes=256, rotRate=0.2},
 
 -- 6. more hg stacks
-{expID = 'hg-generic'..10, netType = 'hg-generic', colourNorm='false', colourjit='false', centerjit=0, pca='false', dropout=0, spatialdropout=0, critweights='false', inputRes=256, opt.rotRate=0.2, opt.nStack=10},
+--{expID = 'hg-generic'..10, netType = 'hg-generic', colourNorm='false', colourjit='false', centerjit=0, pca='false', dropout=0, spatialdropout=0, critweights='false', inputRes=256, nStack=10},
 
 -- 7. denser feature maps
-{expID = 'hg-generic'..nstacks..'-nFeats', netType = 'hg-generic', colourNorm='false', colourjit='false', centerjit=0, pca='false', dropout=0, spatialdropout=0, critweights='false', inputRes=256, opt.nFeats=384},
+--{expID = 'hg-generic'..nstacks..'-nFeats', netType = 'hg-generic', colourNorm='false', colourjit='false', centerjit=0, pca='false', dropout=0, spatialdropout=0, critweights='false', inputRes=256, nFeats=384},
 
 -- 8. higher scaling factor
-{expID = 'hg-generic'..nstacks..'-scale', netType = 'hg-generic', colourNorm='false', colourjit='false', centerjit=0, pca='false', dropout=0, spatialdropout=0, critweights='false', inputRes=256, opt.scale=0.30},
-
+{expID = 'hg-generic'..nstacks..'-scale', netType = 'hg-generic', colourNorm='false', colourjit='false', centerjit=0, pca='false', dropout=0, spatialdropout=0, critweights='false', inputRes=256, scale=0.30},
 }
 
 local function TestArchScript(GPU, info)
@@ -82,5 +81,5 @@ end
 
 
 for i=1+opt.n, #scripts, 2 do
-    TestArchScript(0,scripts[i])
+    TestArchScript(opt.n,scripts[i])
 end

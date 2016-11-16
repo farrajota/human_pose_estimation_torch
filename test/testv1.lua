@@ -68,5 +68,5 @@ end
 
 
 for i=1+opt.n, #scripts, 2 do
-    TestArchScript(0,scripts[i])
+    TestArchScript(opt.n,scripts[i])
 end

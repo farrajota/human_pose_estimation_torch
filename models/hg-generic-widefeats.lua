@@ -6,13 +6,13 @@ local function hourglass(n, f, inp)
 
     -- Lower branch
     local pool = nn.SpatialMaxPooling(2,2,2,2)(inp)
-    local low1 = Residual(f,f)(pool)
+    local low1 = Residual(f,f+128)(pool)
     local low2
 
-    if n > 1 then low2 = hourglass(n-1,f,low1)
-    else low2 = Residual(f,f)(low1) end
+    if n > 1 then low2 = hourglass(n-1,f+128,low1)
+    else low2 = Residual(f+128,f+128)(low1) end
 
-    local low3 = Residual(f,f)(low2)
+    local low3 = Residual(f+128,f)(low2)
     local up2 = nn.SpatialUpSamplingNearest(2)(low3)
 
     -- Bring two branches together
@@ -40,30 +40,17 @@ local function createModel()
     local out = {}
     local inter = r5
 
-    local prev_ll = {}
-    
-    local ll_concat
-    local inputFeats = opt.nFeats
     for i = 1,opt.nStack do
         local hg = hourglass(4,opt.nFeats,inter)
-        
+
         -- Linear layer to produce first set of predictions
         local ll = lin(opt.nFeats,opt.nFeats,hg)
-        
-        if i > 1 then
-            ll_concat = nn.JoinTable(2)({prev_ll, ll})
-            inputFeats = opt.nFeats*2
-        else
-            ll_concat = ll
-            inputFeats = opt.nFeats
-        end
 
         -- Predicted heatmaps
-        local tmpOut = nn.SpatialConvolution(inputFeats,outputDim[1][1],1,1,1,1,0,0)(ll_concat)
+        local tmpOut = nn.SpatialConvolution(opt.nFeats,outputDim[1][1],1,1,1,1,0,0)(ll)
         table.insert(out,tmpOut)
 
         if i < opt.nStack then inter = nn.CAddTable()({inter, hg}) end
-        prev_ll = ll
     end
 
     -- Final model

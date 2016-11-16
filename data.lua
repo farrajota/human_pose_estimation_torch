@@ -83,6 +83,7 @@ local function LSPLoadImgKeypointsFn(data, idx)
     local ymax = keypoints[{{},{2}}]:max()
     local center = torch.FloatTensor({(xmin+xmax)/2, (ymin+ymax)/2})
     local scale = 1.0
+    local normalize = torch.FloatTensor({xmax-xmin, ymax-ymin}):norm()
     
     -- Load image
     local img = image.load(filename,3,'float')

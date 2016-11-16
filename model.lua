@@ -32,6 +32,7 @@ else
     print('==> Creating model from file: models/' .. opt.netType .. '.lua')
     -- load models
     local models_list = paths.dofile('models/init.lua')
+    assert(models_list[opt.netType], 'Undefined model architecture: ' .. opt.netType)
     model = models_list[opt.netType]()
 end
 
@@ -40,12 +41,12 @@ end
 -- Define criterion
 --------------------------------------------------------------------------------
 local criterion
-if opt.nOutputs > 1 then
+if opt.nOutputs > 0 then
     criterion = nn.ParallelCriterion()
     
     local limits = {1,2}
     local w
-    elseif opt.critweights == 'linear' then
+    if opt.critweights == 'linear' then
         w = torch.linspace(limits[1], limits[2], opt.nOutputs)
     elseif opt.critweights == 'steep' then
         w = torch.linspace(limits[1], limits[2]*5, opt.nOutputs)
@@ -66,11 +67,12 @@ if opt.nOutputs > 1 then
         end
     end
 else
-    if string.match('MSE', string.upper(opt.crit)) then
-        criterion = nn.MSECriterion()
-    elseif string.match('smoothl1', string.lower(opt.crit)) then
-        criterion = nn.SmoothL1Criterion()
-    end
+    error('Must have more than 1 stack: '.. opt.nOutputs)
+    --if string.match('MSE', string.upper(opt.crit)) then
+    --    criterion = nn.MSECriterion()
+    --elseif string.match('smoothl1', string.lower(opt.crit)) then
+    --    criterion = nn.SmoothL1Criterion()
+    --end
 end
 
 
@@ -109,19 +111,6 @@ end
 
 local modelOut = nn.Sequential()
 
--- optimize network's memory allocations
-if opt.optimize then
-   -- for memory optimizations and graph generation
-   print('Optimize (reduce) network\'s memory usage...')
-   local optnet = require 'optnet'
-  
-   local sample_input = torch.randn(2,3,opt.inputRes,opt.inputRes):float()
-   if opt.GPU>=1 then sample_input=sample_input:cuda() end
-   model:training()
-   optnet.optimizeMemory(model, sample_input, {inplace = false, mode = 'training'})
-   print('Done.')
-end
-
 -- Generate networks graph 
 if opt.genGraph > 0 and epoch == 1 then
   graph.dot(model.fg, 'pose network', paths.concat(opt.save, 'network_graph'))
@@ -129,6 +118,19 @@ if opt.genGraph > 0 and epoch == 1 then
   if #sys.execute('command -v inkscape') > 0 then
     os.execute(('inkscape -z -e %s  -h 30000 %s'):format(paths.concat(opt.save, 'network_graph.png'),  paths.concat(opt.save, 'network_graph.svg')))
   end
+end
+
+-- optimize network's memory allocations
+if opt.optimize then
+   -- for memory optimizations and graph generation
+   print('Optimize (reduce) network\'s memory usage...')
+   local optnet = require 'optnet'
+  
+   local sample_input = torch.randn(1,3,opt.inputRes,opt.inputRes):float()
+   if opt.GPU>=1 then sample_input=sample_input:cuda() end
+   model:training()
+   optnet.optimizeMemory(model, sample_input, {inplace = false, mode = 'training'})
+   print('Done.')
 end
 
 -- Use multiple gpus
