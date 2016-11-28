@@ -74,12 +74,12 @@ if not opt then
       epoch = last_epoch
       
       -- If there's a previous optimState, load that too
-      if paths.filep(opt.load .. '/optim.t7') then
-          optimState = torch.load(opt.load .. '/optim.t7')
-          optimState.learningRate = opt.LR
-      elseif paths.filep(opt.load .. '/optim_' .. last_epoch .. '.t7') then
-          optimState = torch.load(opt.load .. '/optim_' .. last_epoch .. '.t7')
-      end
+      --if paths.filep(opt.load .. '/optim.t7') then
+      --    optimState = torch.load(opt.load .. '/optim.t7')
+      --    optimState.learningRate = opt.LR
+      --elseif paths.filep(opt.load .. '/optim_' .. last_epoch .. '.t7') then
+      --    optimState = torch.load(opt.load .. '/optim_' .. last_epoch .. '.t7')
+      --end
 
   else epoch = 1 end
   opt.epochNumber = epoch

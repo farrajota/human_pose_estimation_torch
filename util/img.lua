@@ -93,6 +93,19 @@ function transform(pt, center, scale, rot, res, invert)
     return new_point:int():add(1)
 end
 
+function transformV2(pt, center, scale, rot, res, invert)
+    local pt_ = torch.ones(3)
+    pt_[1],pt_[2] = pt[1],pt[2]
+
+    local t = getTransform(center, scale, rot, res)
+    if invert then
+        t = torch.inverse(t)
+    end
+    local new_point = (t*pt_):sub(1,2)
+
+    return new_point
+end
+
 -------------------------------------------------------------------------------
 -- Cropping
 -------------------------------------------------------------------------------

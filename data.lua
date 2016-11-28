@@ -47,7 +47,7 @@ local function MPIILoadImgKeypointsFn(data, idx)
     local img = image.load(filename,3,'float')
     
     -- image, keypoints, center coords, scale, number of joints
-    return img, keypoints:narrow(2,1,2), center, scale, nJoints, normalize 
+    return img, keypoints:view(nJoints, 3), center, scale, nJoints, normalize 
 end
 
 -- flic
@@ -77,19 +77,23 @@ local function LSPLoadImgKeypointsFn(data, idx)
     keypoints = keypoints:view(nJoints, 3)
     
     -- calc center coordinates
-    local xmin = keypoints[{{},{1}}]:min()
-    local xmax = keypoints[{{},{1}}]:max()
-    local ymin = keypoints[{{},{2}}]:min()
-    local ymax = keypoints[{{},{2}}]:max()
-    local center = torch.FloatTensor({(xmin+xmax)/2, (ymin+ymax)/2})
-    local scale = 1.0
-    local normalize = torch.FloatTensor({xmax-xmin, ymax-ymin}):norm()
+    --local xmin = keypoints[{{},{1}}]:min()
+    --local xmax = keypoints[{{},{1}}]:max()
+    --local ymin = keypoints[{{},{2}}]:min()
+    --local ymax = keypoints[{{},{2}}]:max()
+    --local center = torch.FloatTensor({(xmin+xmax)/2, (ymin+ymax)/2})
+    --local center = ((keypoints[10]+keypoints[3])/2):sub(1,2):squeeze()
+    local center = ((keypoints[4]+keypoints[3])/2):sub(1,2):squeeze()
+    local scale = 1.25
+    local normalize = (keypoints[10]-keypoints[3]):norm()
     
     -- Load image
     local img = image.load(filename,3,'float')
     
+    --local center = torch.FloatTensor({img:size(3)/2, img:size(2)/2})
+    
     -- image, keypoints, center coords, scale, number of joints
-    return img, keypoints, center, scale, nJoints
+    return img, keypoints, center, scale, nJoints, normalize
 end
 
 -- ms coco keypoints
@@ -156,14 +160,7 @@ function loadDataBenchmark(idx, data, mode)
             drawGaussian(heatmap[i], transform(torch.add(keypoints[i],1), c, s, r, opt.outputRes), 1)
         end
     end
-
-    --local meanstd = {mean={0.25607767449153,0.23222393443673, 0.2148381369845}, std={0.2086786306043,0.19715121058158,0.19158156380364}}
     
-    --for i=1, 3 do
-    --    img_transf[i]:add(-meanstd.mean[i]):div(meanstd.std[i])
-    --end
-    
-
     -- output
     -- input, label, center, scale, normalize
     return img_transf, keypoints:narrow(2,1,2), c, s, normalize
@@ -222,18 +219,6 @@ function loadData(idx, data, mode)
             img_transf[2]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
             img_transf[3]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
         end
-    end
-    
-    if opt.pca then
-        local pca = {
-           eigval = torch.Tensor{ 0.2175, 0.0188, 0.0045 },
-           eigvec = torch.Tensor{
-              { -0.5675,  0.7192,  0.4009 },
-              { -0.5808, -0.0045, -0.8140 },
-              { -0.5836, -0.6948,  0.4203 },
-           },
-        }
-        img_transf = t.Lighting(0.1, pca.eigval, pca.eigvec)(img_transf)
     end
     
     

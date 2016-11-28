@@ -33,6 +33,7 @@ local tnt = require 'torchnet'
 local function getIterator(mode)
     return tnt.ParallelDatasetIterator{
         nthread = opt.nThreads,
+        ordered = true,
         init    = function(threadid) 
                     require 'torch'
                     require 'torchnet'
@@ -80,7 +81,7 @@ end
 
 -- copy sample to GPU buffer:
 local inputs = cast(torch.Tensor())
-local targets, center, scale, normalize
+local targets, center, scale, normalize, t_matrix
 
 engine.hooks.onSample = function(state)
     cutorch.synchronize(); collectgarbage();
@@ -95,6 +96,7 @@ end
 
 
 local predictions, distances = {}, {}
+local coords = torch.FloatTensor(2,outputDim[1],nSamples):fill(0)
 
 engine.hooks.onForward= function(state)
     xlua.progress(state.t, nSamples)
@@ -114,15 +116,15 @@ engine.hooks.onForward= function(state)
     -- store predictions into a table
     table.insert(predictions, {output, center, scale})
     
-    if opt.predictions == 0 then
-        -- compute the distance accuracy
-        
-        -- Get predictions (hm and img refer to the coordinate space)
-        local preds_hm, preds_img = getPredsBenchmark(output, center, scale)
-        
-        -- compute distances
-        table.insert(distances, calcDistsOne(preds_img:squeeze(), parts, normalize):totable())
-    end
+    -- compute the distance accuracy
+    -- Get predictions (hm and img refer to the coordinate space)
+    local preds_hm, preds_img = getPredsBenchmark(output, center, scale)
+    
+    -- compute distances
+    table.insert(distances, calcDistsOne(preds_img:squeeze(), parts, normalize):totable())
+    
+    -- add coordinates to the coords tensor
+    coords[{{},{},{state.t}}] = preds_img:transpose(2,3):squeeze()
     
     collectgarbage()
 end
@@ -130,83 +132,85 @@ end
 
 engine.hooks.onEnd= function(state)
   
-    if opt.predictions == 0 then
-        local labels = {'Validation'}
-        local res = {}
-        local dists = {torch.FloatTensor(distances):transpose(1,2)}
-        
-        -- plot benchmark results
-        require 'gnuplot'
-        gnuplot.raw('set bmargin 1')
-        gnuplot.raw('set lmargin 3.2')
-        gnuplot.raw('set rmargin 2')
-        if opt.dataset=='mpii' then
-            gnuplot.raw(('set multiplot layout 2,3 title "%s Validation Set Performance (PCKh@%.1f)"'):format(string.upper(opt.dataset), opt.threshold))
-        else
-            gnuplot.raw(('set multiplot layout 2,3 title "%s Validation Set Performance (PCK@%.1f)"'):format(string.upper(opt.dataset), opt.threshold))
-        end
-          
-        gnuplot.raw('set xtics font ",6"')
-        gnuplot.raw('set ytics font ",6"')
-        
-        if opt.dataset == 'mpii' then
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {9,10}, labels, 'Head', opt.threshold), 'Head'})
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {2,5}, labels, 'Knee', opt.threshold), 'Knee'})
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {1,6}, labels, 'Ankle', opt.threshold), 'Ankle'})
-            print('-----------------------------------')
-            gnuplot.raw('set tmargin 2.5')
-            gnuplot.raw('set bmargin 1.5')
-            table.insert(res, {displayPCK(dists, {13,14}, labels, 'Shoulder', opt.threshold), 'Shoulder'})
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {12,15}, labels, 'Elbow', opt.threshold), 'Elbow'})
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {11,16}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
-            print('-----------------------------------')
-            
-        elseif opt.dataset == 'flic' then
-            table.insert(res, {displayPCK(dists, {1,4}, labels, 'Shoulder', opt.threshold), 'Shoulder'})
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {2,5}, labels, 'Elbow', opt.threshold), 'Elbow'})
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {3,6}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
-            print('-----------------------------------')
-            
-        elseif opt.dataset == 'lsp' then
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {13,14}, labels, 'Head', opt.threshold), 'Head'})
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {3,4}, labels, 'Hip', opt.threshold), 'Hip'})
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {2,5}, labels, 'Knee', opt.threshold), 'Knee'})
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {1,6}, labels, 'Ankle', opt.threshold), 'Ankle'})
-            print('-----------------------------------')
-            gnuplot.raw('set tmargin 2.5')
-            gnuplot.raw('set bmargin 1.5')
-            table.insert(res, {displayPCK(dists, {9,10}, labels, 'Shoulder', opt.threshold), 'Shoulder'})
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {8,11}, labels, 'Elbow', opt.threshold), 'Elbow'})
-            print('-----------------------------------')
-            table.insert(res, {displayPCK(dists, {7,12}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
-            print('-----------------------------------')
-        elseif opt.dataset == 'mscoco' or opt.dataset == 'coco' then
-        else
-      end
-      
-        gnuplot.raw('unset multiplot')
-        gnuplot.pngfigure(paths.concat(opt.save, 'Validation_Set_Performance_PCKh.png')) 
-        gnuplot.plotflush()
-        
-        json.save(paths.concat(opt.save,'Validation_Set_Performance_results.json'), json.encode(res))
-        
+    local labels = {'Validation'}
+    local res = {}
+    local dists = {torch.FloatTensor(distances):transpose(1,2)}
+    
+    -- plot benchmark results
+    require 'gnuplot'
+    gnuplot.raw('set bmargin 1')
+    gnuplot.raw('set lmargin 3.2')
+    gnuplot.raw('set rmargin 2')
+    if opt.dataset=='mpii' then
+        gnuplot.raw(('set multiplot layout 2,3 title "%s Validation Set Performance (PCKh@%.1f)"'):format(string.upper(opt.dataset), opt.threshold))
     else
-        -- store predictions into disk
-        torch.save(paths.concat(opt.save,'Predictions.t7'), predictions)
+        gnuplot.raw(('set multiplot layout 2,3 title "%s Validation Set Performance (PCK@%.1f)"'):format(string.upper(opt.dataset), opt.threshold))
     end
-
+      
+    gnuplot.raw('set xtics font ",6"')
+    gnuplot.raw('set ytics font ",6"')
+    
+    if opt.dataset == 'mpii' then
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {9,10}, labels, 'Head', opt.threshold), 'Head'})
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {2,5}, labels, 'Knee', opt.threshold), 'Knee'})
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {1,6}, labels, 'Ankle', opt.threshold), 'Ankle'})
+        print('-----------------------------------')
+        gnuplot.raw('set tmargin 2.5')
+        gnuplot.raw('set bmargin 1.5')
+        table.insert(res, {displayPCK(dists, {13,14}, labels, 'Shoulder', opt.threshold), 'Shoulder'})
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {12,15}, labels, 'Elbow', opt.threshold), 'Elbow'})
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {11,16}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
+        print('-----------------------------------')
+        
+    elseif opt.dataset == 'flic' then
+        table.insert(res, {displayPCK(dists, {1,4}, labels, 'Shoulder', opt.threshold), 'Shoulder'})
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {2,5}, labels, 'Elbow', opt.threshold), 'Elbow'})
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {3,6}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
+        print('-----------------------------------')
+        
+    elseif opt.dataset == 'lsp' then
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {13,14}, labels, 'Head', opt.threshold), 'Head'})
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {3,4}, labels, 'Hip', opt.threshold), 'Hip'})
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {2,5}, labels, 'Knee', opt.threshold), 'Knee'})
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {1,6}, labels, 'Ankle', opt.threshold), 'Ankle'})
+        print('-----------------------------------')
+        gnuplot.raw('set tmargin 2.5')
+        gnuplot.raw('set bmargin 1.5')
+        table.insert(res, {displayPCK(dists, {9,10}, labels, 'Shoulder', opt.threshold), 'Shoulder'})
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {8,11}, labels, 'Elbow', opt.threshold), 'Elbow'})
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {7,12}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
+        print('-----------------------------------')
+    elseif opt.dataset == 'mscoco' or opt.dataset == 'coco' then
+    else
+    end
+  
+    gnuplot.raw('unset multiplot')
+    gnuplot.pngfigure(paths.concat(opt.save, 'Validation_Set_Performance_PCKh.png')) 
+    gnuplot.plotflush()
+    
+    json.save(paths.concat(opt.save,'Validation_Set_Performance_results.json'), json.encode(res))
+    
+    if opt.predictions > 0 then
+        print('Storing predictions to disk.. ')
+        local matio = require 'matio'
+        torch.save(paths.concat(opt.save,'Predictions.t7'), {pred=coords})
+        matio.save(paths.concat(opt.save,'Predictions.mat'),{pred=coords:double()})
+        json.save(paths.concat(opt.save,'Validation_Set_Performance_results.json'), json.encode(res))
+    end
+    
 end
 
 

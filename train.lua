@@ -107,8 +107,8 @@ local engine = tnt.OptimEngine()
 engine.hooks.onStart = function(state)
     if state.training then
         state.config = optimStateFn(state.epoch+1)
-        if opt.iniEpoch>1 then 
-            state.epoch = math.max(opt.iniEpoch, state.epoch)
+        if opt.epochNumber>1 then 
+            state.epoch = math.max(opt.epochNumber, state.epoch)
         end
     end
 end
@@ -156,7 +156,7 @@ engine.hooks.onSample = function(state)
     state.sample.target = utils.ReplicateTensor2Table(targets, opt.nOutputs)
 end
 
-
+local valid_best_accu = 0
 engine.hooks.onEndEpoch = function(state)
     print(('Train Loss: %0.5f; Acc: %0.5f'):format(meters.train_err:value(),  meters.train_accu:value()))
     -- measure test loss and error:
@@ -181,6 +181,12 @@ engine.hooks.onEndEpoch = function(state)
     
     -- store model
     storeModel(state.network.modules[1], state.config, state.epoch, opt)
+    
+    if vl_accuracy > valid_best_accu then
+        valid_best_accu = vl_accuracy
+        utils.saveDataParallel(paths.concat(opt.save,'best_model_accuracy.t7'), model)
+    end
+    
     state.t = 0
 end
 

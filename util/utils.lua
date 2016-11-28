@@ -56,6 +56,7 @@ local function makeDataParallelTable(model, nGPU)
          :add(model, gpus)
          :threads(function()
             require 'nngraph'
+            paths.dofile('../modules/NoBackprop.lua')
             if pcall(require,'cudnn') then
                local cudnn = require 'cudnn'
                cudnn.fastest, cudnn.benchmark = fastest, benchmark
