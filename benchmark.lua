@@ -113,6 +113,7 @@ engine.hooks.onForward= function(state)
     -- clamp negatives values to 0
     output[output:lt(0)] = 0
     
+    
     -- store predictions into a table
     table.insert(predictions, {output, center, scale})
     

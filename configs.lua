@@ -164,23 +164,25 @@ end
 -- Get dataset mean/std for normalization
 -------------------------------------------------------------------------------
 
-print('Loading mean/std normalization values... ')
-local fname_meanstd = paths.concat(opt.expDir, 'meanstd_cache.t7')
+if opt.colourNorm then
+    print('Loading mean/std normalization values... ')
+    local fname_meanstd = paths.concat(opt.expDir, 'meanstd_cache.t7')
 
-if paths.filep(fname_meanstd) then
-    -- load mean/std from disk
-    print('Loading mean/std cache from disk: ' .. fname_meanstd)
-    opt.meanstd = torch.load(fname_meanstd, meanstd)
-else
-    -- compute mean/std 
-    paths.dofile('data.lua')
-    print('mean/std cache file not found. Computing mean/std for the ' .. opt.dataset ..' dataset:')
-    local meanstd = ComputeMeanStd(g_dataset.train)
-    print('Saving mean/std cache to disk: ' .. fname_meanstd)
-    torch.save(fname_meanstd, meanstd)
-    opt.meanstd = meanstd
+    if paths.filep(fname_meanstd) then
+        -- load mean/std from disk
+        print('Loading mean/std cache from disk: ' .. fname_meanstd)
+        opt.meanstd = torch.load(fname_meanstd, meanstd)
+    else
+        -- compute mean/std 
+        paths.dofile('data.lua')
+        print('mean/std cache file not found. Computing mean/std for the ' .. opt.dataset ..' dataset:')
+        local meanstd = ComputeMeanStd(g_dataset.train)
+        print('Saving mean/std cache to disk: ' .. fname_meanstd)
+        torch.save(fname_meanstd, meanstd)
+        opt.meanstd = meanstd
+    end
+    --print(opt.meanstd)
 end
---print(opt.meanstd)
 
 -------------------------------------------------------------------------------
 -- Load model + criterion

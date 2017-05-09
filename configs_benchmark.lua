@@ -17,9 +17,11 @@ require 'image'
 require 'cutorch'
 require 'cunn'
 require 'cudnn'
+require 'image'
 
 paths.dofile('util/img.lua')
 paths.dofile('util/eval.lua')
+paths.dofile('util/draw.lua')
 paths.dofile('util/Logger.lua')
 paths.dofile('util/store.lua')
 utils = paths.dofile('util/utils.lua')
@@ -39,7 +41,7 @@ cmd:text('Pose Benchmark (PCK(h) evaluation) options: ')
 cmd:text()
 cmd:text(' ---------- General options --------------------------------------')
 cmd:text()
-cmd:option('-expID',       'hg-generic8', 'Experiment ID')
+cmd:option('-expID',       'hg-generic8-correct', 'Experiment ID')
 cmd:option('-dataset',     'lsp', 'Dataset choice: mpii | flic | lsp | mscoco')
 cmd:option('-expDir',   projectDir .. '/exp',  'Experiments directory')
 cmd:option('-reprocess',   false,  'Utilize existing predictions from the model\'s folder.')
@@ -83,6 +85,12 @@ else
     opt.setname = 'test'
 end
   
+ -- Random number seed
+if opt.manualSeed ~= -1 then
+    torch.manualSeed(opt.manualSeed)
+else 
+    torch.seed() 
+end
 
 print('Saving everything to: ' .. opt.save)
 os.execute('mkdir -p ' .. opt.save)

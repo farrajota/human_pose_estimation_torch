@@ -87,9 +87,9 @@ function meters:reset()
 end
 
 local loggers = {
-    valid = optim.Logger(paths.concat(opt.save,'valid.log')),
-    train = optim.Logger(paths.concat(opt.save,'train.log')),
-    full_train = optim.Logger(paths.concat(opt.save,'full_train.log')),
+    valid = Logger(paths.concat(opt.save,'valid.log'), opt.continue),
+    train = Logger(paths.concat(opt.save,'train.log'), opt.continue),
+    full_train = Logger(paths.concat(opt.save,'full_train.log'), opt.continue),
 }
 
 loggers.valid:setNames{'Valid Loss', 'Valid acc.'}
@@ -182,7 +182,8 @@ engine.hooks.onEndEpoch = function(state)
     -- store model
     storeModel(state.network.modules[1], state.config, state.epoch, opt)
     
-    if vl_accuracy > valid_best_accu then
+    if vl_accuracy > valid_best_accu and opt.saveBest then
+        print('New best accuracy detected! Saving model snapshot to disk: ' .. paths.concat(opt.save,'best_model_accuracy.t7'))
         valid_best_accu = vl_accuracy
         utils.saveDataParallel(paths.concat(opt.save,'best_model_accuracy.t7'), model)
     end

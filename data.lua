@@ -40,8 +40,8 @@ local function MPIILoadImgKeypointsFn(data, idx)
     local normalize = torch.FloatTensor({head_coord[3]-head_coord[1], head_coord[4]-head_coord[2]}):norm() * 0.6 
     
     -- Small adjustment so cropping is less likely to take feet out
-    center[2] = center[2] + 15 * scale
-    scale = scale * 1.25
+    center[2] = center[2] --+ 15 * scale
+    scale = scale --* 1.25
     
     -- Load image
     local img = image.load(filename,3,'float')
@@ -77,14 +77,23 @@ local function LSPLoadImgKeypointsFn(data, idx)
     keypoints = keypoints:view(nJoints, 3)
     
     -- calc center coordinates
-    --local xmin = keypoints[{{},{1}}]:min()
-    --local xmax = keypoints[{{},{1}}]:max()
-    --local ymin = keypoints[{{},{2}}]:min()
-    --local ymax = keypoints[{{},{2}}]:max()
-    --local center = torch.FloatTensor({(xmin+xmax)/2, (ymin+ymax)/2})
+    local kps_coords_x = keypoints:select(2,1)
+    local kps_coords_y = keypoints:select(2,2)
+    local kps_x=kps_coords_x[kps_coords_x:gt(0)]
+    local kps_y=kps_coords_y[kps_coords_y:gt(0)]
+    --local xmin = kps_x:min()
+    --local xmax = kps_x:max()
+    --local ymin = kps_y:min() 
+    --local ymax = kps_y:max()
+    --local keypoints_remove_zeros = keypoints[keypoints:gt(0):byte()]:view(-1,3) -- remove coords equal to 0
+    --local xmin = keypoints_remove_zeros[{{},{1}}]:min()
+    --local xmax = keypoints_remove_zeros[{{},{1}}]:max()
+    --local ymin = keypoints_remove_zeros[{{},{2}}]:min()
+    --local ymax = keypoints_remove_zeros[{{},{2}}]:max()
+    local center = torch.FloatTensor({(kps_x:min()+kps_x:max())/2, (kps_y:min()+kps_y:max())/2})
     --local center = ((keypoints[10]+keypoints[3])/2):sub(1,2):squeeze()
-    local center = ((keypoints[4]+keypoints[3])/2):sub(1,2):squeeze()
-    local scale = 1.25
+    --local center = ((keypoints[4]+keypoints[3])/2):sub(1,2):squeeze()
+    local scale = 1-- 1.25
     local normalize = (keypoints[10]-keypoints[3]):norm()
     
     -- Load image
@@ -119,6 +128,24 @@ local function COCOLoadImgKeypointsFn(data, idx)
   
 end
 
+-- MPII+LSP+LSPe
+local function MPIILSPLoadImgKeypointsFn(data, idx)
+    if data.isTrain then
+        if idx <= data.data[1].object:size(1) then
+            -- mpii train
+            local img, keypoints, center, scale, nJoints, normalize = MPIILoadImgKeypointsFn(data.data[1], idx)
+            return img, keypoints:index(1,torch.LongTensor({1,2,3,4,5,6,11,12,13,14,15,16,9,10})), center, scale, 14, normalize
+        elseif idx <= data.data[1].object:size(1)+data.data[2].object:size(1) then
+            -- lsp train
+            return LSPLoadImgKeypointsFn(data.data[2], idx-data.data[1].object:size(1))
+        else
+            -- lspe train
+            return LSPLoadImgKeypointsFn(data.data[3], idx-(data.data[1].object:size(1)+data.data[2].object:size(1)))
+        end
+    else
+        return LSPLoadImgKeypointsFn(data, idx)
+    end
+end
 
 
 -------------------------------------------------------------------------------
@@ -135,9 +162,12 @@ elseif opt.dataset == 'lsp' then
     loadImgKeypointsFn = LSPLoadImgKeypointsFn
 elseif opt.dataset == 'mscoco' or opt.dataset == 'coco' then
     loadImgKeypointsFn = COCOLoadImgKeypointsFn
+elseif opt.dataset == 'mpii+lsp' then
+    loadImgKeypointsFn = MPIILSPLoadImgKeypointsFn
 else
     error('Invalid dataset: ' .. opt.dataset..'. Please use one of the following datasets: mpii, flic, lsp, mscoco.')
 end
+loadImgKeypointsFn_ = loadImgKeypointsFn
 
 
 -------------------------------------------------------------------------------
@@ -157,7 +187,8 @@ function loadDataBenchmark(idx, data, mode)
     local heatmap = torch.zeros(nJoints, opt.outputRes, opt.outputRes)
     for i = 1,nJoints do
         if keypoints[i][1] > 1 then -- Checks that there is a ground truth annotation
-            drawGaussian(heatmap[i], transform(torch.add(keypoints[i],1), c, s, r, opt.outputRes), 1)
+            --drawGaussian(heatmap[i], mytransform(torch.add(keypoints[i],1), c, s, r, opt.outputRes), 1)
+            drawGaussian(heatmap[i], mytransform(keypoints[i], c, s, r, opt.outputRes), opt.hmGauss or 1)
         end
     end
     
@@ -177,20 +208,15 @@ function loadData(idx, data, mode)
     local r = 0 -- set rotation to 0
     
     -- Load image + keypoints + other data
-    local img, keypoints, c, s, nJoints = loadImgKeypointsFn(data, idx)
-    
-    if opt.centerjit > 0 then
-        local offset = c:clone():random(-opt.centerjit, opt.centerjit)
-        c = c:add(offset)
-    end
-    
+    local img, keypoints, c, s, nJoints = loadImgKeypointsFn(data, idx)  
+    local s_ = s
     
     -- Do rotation + scaling
     if mode == 'train' then
         -- Scale and rotation augmentation
         s = s * (2 ^ rnd(opt.scale))
+        --s = s * torch.uniform(1-opt.scale, 1+opt.scale)
         r = rnd(opt.rotate)
-        --if torch.uniform() <= .6 then r = 0 end
         if torch.uniform() <= opt.rotRate then r = 0 end
     end
 
@@ -199,7 +225,62 @@ function loadData(idx, data, mode)
     local heatmap = torch.zeros(nJoints, opt.outputRes, opt.outputRes)
     for i = 1,nJoints do
         if keypoints[i][1] > 1 then -- Checks that there is a ground truth annotation
-            drawGaussian(heatmap[i], transform(torch.add(keypoints[i],1), c, s, r, opt.outputRes), 1)
+            local new_kp = transform(keypoints[i], c, s, r, opt.outputRes)
+            drawGaussian(heatmap[i], new_kp, opt.hmGauss)
+        end
+    end
+    
+    -- Do image augmentation/normalization
+    if mode == 'train' then
+        -- Flipping
+        if torch.uniform() < .5 then
+            img_transf = flip(img_transf)
+            heatmap = shuffleLR(flip(heatmap))
+        end
+        -- color augmentation
+        if opt.colourjit then
+            local opts_jit = {brightness = 0.4,contrast = 0.4,saturation = 0.4}
+            img_transf = t.ColorJitter(opts_jit)(img_transf)
+        else
+            img_transf[1]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
+            img_transf[2]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
+            img_transf[3]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
+        end
+    end
+    
+    -- output
+    return img_transf, heatmap
+end
+
+
+function loadData_new(idx, data, mode)
+  
+    -- inits
+    local r = 0 -- set rotation to 0
+    
+    -- Load image + keypoints + other data
+    local img, keypoints, c, s, nJoints = loadImgKeypointsFn(data, idx)  
+    local s_ = s
+    
+    -- Do rotation + scaling
+    if mode == 'train' then
+        -- Scale and rotation augmentation
+        --s = s * torch.uniform(1-opt.scale, 1+opt.scale)
+        
+        s = s * (2 ^ rnd(opt.scale))
+        r = rnd(opt.rotate)
+        --r = torch.uniform(-opt.rotate, opt.rotate)
+        if torch.uniform() <= opt.rotRate then r = 0 end
+    end
+
+    -- Crop image + craft heatmap
+    local total1, total2 = 0,0
+    local img_transf = mycrop(img, c, s, r, opt.inputRes)
+    local heatmap = torch.zeros(nJoints, opt.outputRes, opt.outputRes)
+    for i = 1,nJoints do
+        if keypoints[i][1] > 1 then -- Checks that there is a ground truth annotation
+            local new_kp = mytransform(keypoints[i], c, s, r, opt.outputRes)
+            drawGaussian(heatmap[i], new_kp:int(), opt.hmGauss)
         end
     end
 
@@ -219,12 +300,6 @@ function loadData(idx, data, mode)
             img_transf[2]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
             img_transf[3]:mul(torch.uniform(0.6,1.4)):clamp(0,1)
         end
-    end
-    
-    
-    -- normalize mean/std
-    if opt.colourNorm then
-        img_transf = t.ColorNormalize(opt.meanstd)(img_transf)
     end
     
     -- output

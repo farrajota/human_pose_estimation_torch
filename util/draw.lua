@@ -2,7 +2,6 @@
     Functions used in the demo display.
 ]]
 
-
 local function drawLineColor(img,pt1,pt2,width,color)
     -- I'm sure there's a line drawing function somewhere in Torch,
     -- but since I couldn't find it here's my basic implementation
@@ -173,6 +172,16 @@ function drawHeatmapPartsFLIC(input, hms, coords)
     local colorHms = {}
     local inp64 = image.scale(input,64):mul(.3)
     for i = 1,11 do 
+        colorHms[i] = colorHM(hms[i])
+        colorHms[i]:mul(.7):add(inp64)
+    end
+    return colorHms
+end
+
+function drawImgHeatmapParts(input, hms)
+    local colorHms = {}
+    local inp64 = image.scale(input,64):mul(.3)
+    for i = 1,hms:size(1) do 
         colorHms[i] = colorHM(hms[i])
         colorHms[i]:mul(.7):add(inp64)
     end

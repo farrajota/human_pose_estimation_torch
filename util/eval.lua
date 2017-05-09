@@ -55,13 +55,13 @@ local function fitParabolaAll(hms, coords)
             local x = {coords[i][j][1]-1, coords[i][j][1], coords[i][j][1]+1}
             local y = {coords[i][j][2]-1, coords[i][j][2], coords[i][j][2]+1}
             
-            if x[1]>0 and x[3]<=w then
+            if x[1]>=1 and x[3]<=w and y[2]>=1 and y[2]<=h then
                 preds[i][j][1] = fitParabola(x[1],x[2],x[3],hms[i][j][y[2]][x[1]],hms[i][j][y[2]][x[2]],hms[i][j][y[2]][x[3]])
             else
                 preds[i][j][1]=x[2] -- skip parabola fitting for this coordinate
             end
             
-            if y[1]>0 and y[3]<=h then
+            if y[1]>=1 and y[3]<=h and x[2]>=1 and x[2]<=w then
                 preds[i][j][2] = fitParabola(y[1],y[2],y[3],hms[i][j][y[1]][x[2]],hms[i][j][y[2]][x[2]],hms[i][j][y[3]][x[2]])
             else
                 preds[i][j][2]=y[2] -- skip parabola fitting for this coordinate
@@ -111,7 +111,7 @@ function getPredsBenchmark(hms, center, scale)
     local preds_tf = torch.zeros(preds:size())
     for i = 1,hms:size(1) do        -- Number of samples
         for j = 1,hms:size(2) do    -- Number of output heatmaps for one sample
-            preds_tf[i][j] = transformV2(preds[i][j],center,scale,0,hms:size(3),true)
+            preds_tf[i][j] = mytransform(preds[i][j],center,scale,0,hms:size(3),true)
         end
     end
 
@@ -226,10 +226,11 @@ end
 function accuracy(output,label)
     --local jntIdxs = {mpii={1,2,3,4,5,6,11,12,15,16},flic={2,3,5,6,7,8}}
     local jntIdxs = {
-        mpii={1,2,3,4,5,6,10,11,12,13,14,15,16},
-        flic={1,2,3,4,5,6}, 
-        lsp={1,2,3,4,5,6,7,8,9,10,11,12,13,14},
-        mscoco={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17}
+        ['mpii']={1,2,3,4,5,6,10,11,12,13,14,15,16},
+        ['flic']={1,2,3,4,5,6}, 
+        ['lsp']={1,2,3,4,5,6,7,8,9,10,11,12,13,14},
+        ['mscoco']={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17},
+        ['mpii+lsp']={1,2,3,4,5,6,7,8,9,10,11,12,13,14}
     }
     if opt.task == 'pose-int' then
         if type(output) == 'table' then
