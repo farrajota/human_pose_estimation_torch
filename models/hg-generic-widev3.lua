@@ -75,7 +75,7 @@ local function createModel()
     local cat2_ = nn.SpatialConvolution(512+128,512,1,1,1,1,0,0)(cat2)
     local int2 = nn.CAddTable()({cat2_,out2_})
 
-    -- Second hourglass
+    -- Third hourglass
     local hg3 = hourglass(4,512,512,int2)
 
     -- Linear layers to produce predictions again
