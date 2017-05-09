@@ -7,30 +7,30 @@ require 'paths'
 require 'string'
 disp = require 'display'
 
-torch.manualSeed(4)
+torch.manualSeed(40)
 
 paths.dofile('../projectdir.lua') -- Project directory
 utils = paths.dofile('../util/utils.lua')
 
 local opts = paths.dofile('../options.lua')
 opt = opts.parse(arg)
-opt.dataset = 'lsp'
-opt.rotRate=0
+opt.dataset = 'mpii+lsp'
+opt.rotRate=0.2
 
 paths.dofile('../dataset.lua')
 paths.dofile('../data.lua')
 
-dataset = loadDataset() -- load dataset (train+val+test sets)
+dataset = loadDataset() -- load dataset train+val+test sets
 
 --a,b = loadDataBenchmark(1,dataset.val, 'val')
 mode = 'train'
 --a,b = loadData(1,dataset[mode], mode)
-N = 9
+N = 16
 local img = torch.FloatTensor(N,3,256,256);
 local hm = {}
 for i=1, N do
   print(i)
-  img[i], hm[i] = loadData(3500,dataset[mode], mode)
+  img[i], hm[i] = loadData(torch.random(dataset[mode].object:size(1)),dataset[mode], mode)
 end
 
 disp.image(img)
@@ -59,7 +59,8 @@ function drawHeatmapParts(input, hms)
     return colorHms
 end
 
-disp.image(drawHeatmapParts(img[1]:double(), hm[1]:double()))
+id = 5
+--disp.image(drawHeatmapParts(img[5]:double(), hm[5]:double()))
 
 aqui=1
 
