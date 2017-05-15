@@ -3,16 +3,16 @@
 -------------------------------------------------------------------------------
 
 function normCoords(bbox, keypoints, size, scale)
-  
+
     -- get crop region coordinates
     local xc = (bbox[1]+bbox[3])/2
     local yc = (bbox[2]+bbox[4])/2
     local width = (bbox[3]-bbox[1])+1
     local height = (bbox[5]-bbox[2])+1
-    
+
     -- get maximum size of the bbox
     local max_size = math.max(width, height)
-    
+
     -- get a square bbox around the center of the bbox and add a small scaling effect
     local crop_coords
     if width > height then
@@ -26,7 +26,7 @@ function normCoords(bbox, keypoints, size, scale)
         local h_offset = (height/2) * scale
         crop_coords = {xc-w_offset,yc-h_offset,xc+w_offset,yc+h_offset}
     end
-    
+
     -- set new keypoints coordinates
     local new_keypoints = keypoints:clone():fill(0)
     local new_max_size = crop_coords[3]-crop_coords[1]
@@ -34,7 +34,7 @@ function normCoords(bbox, keypoints, size, scale)
         keypoints[i][1] = keypoints[i][1] - crop_coords[1] / new_max_size * size
         keypoints[i][2] = keypoints[i][2] - crop_coords[2] / new_max_size * size
     end
-    
+
     -- output
     return crop_coords, new_keypoints
 end
@@ -106,7 +106,7 @@ end
 function mytransform(pt, center, scale, rot, res, invert)
     local pt_ = torch.ones(3)
     pt_[1],pt_[2] = pt[1],pt[2]
-    
+
     local h = 200 * scale
     local t = torch.eye(3)
 
@@ -117,7 +117,7 @@ function mytransform(pt, center, scale, rot, res, invert)
     -- Translation
     t[1][3] = res * (-center[1] / h + .5)
     t[2][3] = res * (-center[2] / h + .5)
-    
+
     -- rotation matrix
     if rot ~= 0 then
         local rotation = -rot
@@ -138,14 +138,14 @@ function mytransform(pt, center, scale, rot, res, invert)
         t_inv[2][3] = res/2
         t = t_inv * r * t_ * t
     end
-    
+
     if invert then
         t = torch.inverse(t)
     end
-    
+
     -- process transformation
     local new_point = (t*pt_):sub(1,2)
-    
+
     return new_point
 end
 
@@ -166,14 +166,14 @@ function crop2(img, center, scale, rot, res)
     -- Modify crop approach depending on whether we zoom in/out
     -- This is for efficiency in extreme scaling cases
     local scaleFactor = (200 * scale) / res
-    if scaleFactor < 2 then 
+    if scaleFactor < 2 then
         scaleFactor = 1
     else
         local newSize = math.floor(math.max(ht,wd) / scaleFactor)
         if newSize < 2 then
             -- Zoomed out so much that the image is now a single pixel or less
-            if ndim == 2 then 
-                newImg = newImg:view(newImg:size(2),newImg:size(3)) 
+            if ndim == 2 then
+                newImg = newImg:view(newImg:size(2),newImg:size(3))
             end
             return newImg
         else
@@ -232,7 +232,7 @@ function mycrop(img, center, scale, rot, res)
     local newSize = math.floor(math.max(ht,wd) / rescale_factor)
     local c_ = center:float()/rescale_factor
     c_=c_:int()
-    
+
     -- apply scalling
     local img_scaled = image.scale(img, newSize)
     local offset = res/2
@@ -246,7 +246,7 @@ function mycrop(img, center, scale, rot, res)
     local x2_,y2_ = x1_+(x2-x1), y1_+(y2-y1)
     -- (copy data to the output tensor)
     assert(y1_>0 and y2_>0 and x1_>0 and x2_>0, 'One of this variables is smaller than 1: x1_,y1_,x2_,y2_')
-    out[{{},{y1_,y2_},{x1_,x2_}}]:copy(img_scaled[{{},{y1,y2},{x1,x2}}])   
+    out[{{},{y1_,y2_},{x1_,x2_}}]:copy(img_scaled[{{},{y1,y2},{x1,x2}}])
 
     -- apply rotation
     if rot ~= 0 then
@@ -353,7 +353,7 @@ function drawLine(img, pt1, pt2, width, color)
         for i = 1,torch.ceil(m) do
             y_idx = torch.ceil(start_pt1[2]+dy*i)
             x_idx = torch.ceil(start_pt1[1]+dx*i)
-            if y_idx - 1 > 0 and x_idx -1 > 0 
+            if y_idx - 1 > 0 and x_idx -1 > 0
             and y_idx < img:size(2) and x_idx < img:size(3) then
                 for j = 1,nChannels do img[j]:sub(y_idx-1,y_idx,x_idx-1,x_idx):fill(color[j]) end
             end

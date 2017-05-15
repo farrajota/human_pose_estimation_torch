@@ -20,7 +20,7 @@ local function drawLineColor(img,pt1,pt2,width,color)
                 img:sub(2,2,y_idx-1,y_idx,x_idx-1,x_idx):fill(color[2])
                 img:sub(3,3,y_idx-1,y_idx,x_idx-1,x_idx):fill(color[3])
             end
-        end 
+        end
     end
     img[img:gt(1)] = 1
 
@@ -76,9 +76,9 @@ function drawSkeletonFLIC(input, hms, coords)
         --{1,4}, {2,5}, {3,6}, {7,8}
         {1,2}, {2,3},
         {4,5}, {5,6},
-        {7,8}, 
+        {7,8},
         {9,10}, {10,11}, {9,11}
-        
+
     }
 
 
@@ -142,7 +142,7 @@ function drawOutput(input, hms, coords)
 
     local colorHms = {}
     local inp64 = image.scale(input,64):mul(.3)
-    for i = 1,16 do 
+    for i = 1,16 do
         colorHms[i] = colorHM(hms[i])
         colorHms[i]:mul(.7):add(inp64)
     end
@@ -157,7 +157,7 @@ function drawOutputFLIC(input, hms, coords)
 
     local colorHms = {}
     local inp64 = image.scale(input,64):mul(.3)
-    for i = 1,11 do 
+    for i = 1,11 do
         colorHms[i] = colorHM(hms[i])
         colorHms[i]:mul(.7):add(inp64)
     end
@@ -171,7 +171,7 @@ function drawHeatmapPartsFLIC(input, hms, coords)
 
     local colorHms = {}
     local inp64 = image.scale(input,64):mul(.3)
-    for i = 1,11 do 
+    for i = 1,11 do
         colorHms[i] = colorHM(hms[i])
         colorHms[i]:mul(.7):add(inp64)
     end
@@ -181,7 +181,7 @@ end
 function drawImgHeatmapParts(input, hms)
     local colorHms = {}
     local inp64 = image.scale(input,64):mul(.3)
-    for i = 1,hms:size(1) do 
+    for i = 1,hms:size(1) do
         colorHms[i] = colorHM(hms[i])
         colorHms[i]:mul(.7):add(inp64)
     end
