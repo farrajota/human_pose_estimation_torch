@@ -45,7 +45,7 @@ function M.Vignette(scale)
       local imgCntX = iW/2;
       local imgCntY = iH/2;
       local maxDistance = math.sqrt(math.pow(imgCntY,2) + math.pow(imgCntX,2))
-      
+
       local rows_dist = torch.linspace(1, iH, iH):float():add(-imgCntY):pow(2):reshape(iH,1)
       local cols_dist = torch.linspace(1, iW, iW):float():add(-imgCntX):pow(2):reshape(1, iW)
       local dis = torch.add(torch.expand(rows_dist,iW,iH), torch.expand(cols_dist,iW,iH))
@@ -62,24 +62,24 @@ end
 function M.Smoothing(kernel, sigma)
    if sigma then
      if type(sigma) == 'number' then sigma = {W = sigma, H = sigma} end
-   else 
+   else
      sigma = {W=0.25, H=0.25}
    end
-   
+
    return function(input)
       if kernel.W == 0 and kernel.H == 0 then
         return input
       end
 
       -- gaussian filter
-      local gs = image.gaussian{amplitude=1, 
-                                normalize=true, 
-                                width=kernel.W, 
-                                height=kernel.H, 
-                                sigma_horz=sigma.W, 
+      local gs = image.gaussian{amplitude=1,
+                                normalize=true,
+                                width=kernel.W,
+                                height=kernel.H,
+                                sigma_horz=sigma.W,
                                 sigma_vert=sigma.H
                               }
-      
+
       return  image.convolve(input, gs, 'same')
    end
 end
@@ -100,17 +100,17 @@ function M.augmentHSV(augHSV)
         im_hsv[1] = im_hsv[1]+(1 + torch.normal(0, augHSV.S))
      end
      if augHSV.S >0 then
-        im_hsv[2] = im_hsv[2]+torch.normal(0, augHSV.S) 
+        im_hsv[2] = im_hsv[2]+torch.normal(0, augHSV.S)
         im_hsv[2].image.saturate(im_hsv[2]) -- bound saturation between 0 and 1
      end
      if augHSV.V >0 then
-        im_hsv[3] = im_hsv[3]+torch.normal(0, augHSV.V) 
+        im_hsv[3] = im_hsv[3]+torch.normal(0, augHSV.V)
         im_hsv[3].image.saturate(im_hsv[3]) -- bound value between 0 and 1
      end
      return image.hsv2rgb(im_hsv)
    end
  end
- 
+
 -- Adds noise to the image
 -- Parameters:
 -- @param im (tensor): input image
@@ -134,10 +134,10 @@ end
 -- ref: https://github.com/brainstorm-ai/DIGITS/blob/6a150cfbed2aa7dd70992036dfbdf66ee088fba0/tools/torch/data.lua#L67
 function M.Warp(augRot, augScale)
    return function(input)
-    -- A nice function of scale is 0.05 (stddev of scale change), 
+    -- A nice function of scale is 0.05 (stddev of scale change),
     -- and a nice value for ration is a few degrees or more if your dataset allows for it
 
-    local width = input:size(3) 
+    local width = input:size(3)
     local height = input:size(2)
 
     -- Scale <0=zoom in(+rand crop), >0=zoom out
