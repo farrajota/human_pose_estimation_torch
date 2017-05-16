@@ -14,6 +14,9 @@ require 'image'
 
 paths.dofile('util/img.lua')
 paths.dofile('util/eval.lua')
+paths.dofile('util/Logger.lua')
+paths.dofile('util/store.lua')
+paths.dofile('util/draw.lua')
 paths.dofile('util/utils.lua')
 
 --local ffi = require 'ffi'
@@ -52,21 +55,24 @@ end
 ------------------------------------------------------------------------------------------------------------
 
 local function loader_flic(set_name)
+    local string_ascii = require 'dbcollection.utils.string_ascii'
+    local ascii2str = string_ascii.convert_ascii_to_str
+
     local dbloader = get_db_loader('flic')
 
     -- number of samples per train/test sets
     local set_size = dbloader:size(set_name)[1]
 
     -- number of keypoints (body joints)
-    local nJoints = dbloader:size(set_name, 'keypoints')[2]/3
+    local nJoints = dbloader:size(set_name, 'keypoints')[2]
 
     -- data loader function
     local data_loader = function(idx)
-        local data = dbloader:object(set_name, idx, true)
+        local data = dbloader:object(set_name, idx, true)[1]
 
-        local filename = paths.concat(dbloader.data_dir, data[1])
-        local keypoints = data[4]
-        local torso_bbox = data[3]
+        local filename = paths.concat(dbloader.data_dir, ascii2str(data[1])[1])
+        local keypoints = data[4]:float()
+        local torso_bbox = data[3]:float():squeeze()
         local center = torch.FloatTensor({(torso_bbox[1]+torso_bbox[3])/2,
                                           (torso_bbox[2]+torso_bbox[4])/2})
         local scale = 2.2
@@ -96,7 +102,7 @@ local function loader_lsp(set_name)
     local set_size = dbloader:size(set_name)[1]
 
     -- number of keypoints (body joints)
-    local nJoints = dbloader:size(set_name, 'keypoints')[2]/3
+    local nJoints = dbloader:size(set_name, 'keypoints')[2]
 
     -- data loader function
     local data_loader = function(idx)
@@ -139,7 +145,7 @@ local function loader_mpii(set_name)
     local set_size = dbloader:size(set_name)[1]
 
     -- number of keypoints (body joints)
-    local nJoints = dbloader:size(set_name, 'keypoints')[2]/3
+    local nJoints = dbloader:size(set_name, 'keypoints')[2]
 
     -- data loader function
     local data_loader = function(idx, num_keypoints)
@@ -182,11 +188,15 @@ end
 local function loader_coco(set_name)
     local dbloader = get_db_loader('mscoco')
 
+    if set_name == 'test' then
+        set_name = 'val' -- use mscoco val set for testing
+    end
+
     -- number of samples per train/test sets
     local set_size = dbloader:size(set_name)[1]
 
     -- number of keypoints (body joints)
-    local nJoints = dbloader:size(set_name, 'keypoints')[2]/3
+    local nJoints = dbloader:size(set_name, 'keypoints')[2]
 
     -- data loader function
     local data_loader = function(idx)
@@ -274,7 +284,7 @@ function select_dataset_loader(name, mode)
     local str = string.lower(mode)
     if str == 'train' then
         return {
-            train = fetch_loader_dataset(name, 'train')
+            train = fetch_loader_dataset(name, 'train'),
             test = fetch_loader_dataset(name, 'test')
         }
     elseif str == 'test' then
@@ -285,6 +295,34 @@ function select_dataset_loader(name, mode)
         error(('Invalid mode: %s. mode must be either \'train\' or \'test\''):format(mode))
     end
 end
+
+
+-------------------------------------------------------------------------------
+-- Test: transform image
+-------------------------------------------------------------------------------
+
+function loadDataBenchmark(idx, data, mode)
+
+    -- inits
+    local r = 0 -- set rotation to 0
+
+    -- Load image + keypoints + other data
+    local img, keypoints, c, s, nJoints, normalize = loadImgKeypointsFn(data, idx)
+
+    -- Crop image + craft heatmap
+    local img_transf = crop2(img, c, s, r, opt.inputRes)
+    local heatmap = torch.zeros(nJoints, opt.outputRes, opt.outputRes)
+    for i = 1,nJoints do
+        if keypoints[i][1] > 1 then -- Checks that there is a ground truth annotation
+            --drawGaussian(heatmap[i], mytransform(torch.add(keypoints[i],1), c, s, r, opt.outputRes), 1)
+            drawGaussian(heatmap[i], mytransform(keypoints[i], c, s, r, opt.outputRes), opt.hmGauss or 1)
+        end
+    end
+
+    -- output: input, label, center, scale, normalize
+    return img_transf, keypoints:narrow(2,1,2), c, s, normalize
+end
+
 
 
 -------------------------------------------------------------------------------
@@ -309,8 +347,7 @@ function loadDataBenchmark(idx, data, mode)
         end
     end
 
-    -- output
-    -- input, label, center, scale, normalize
+    -- output: input, label, center, scale, normalize
     return img_transf, keypoints:narrow(2,1,2), c, s, normalize
 end
 
@@ -386,8 +423,7 @@ function transform_data_test(img, keypoints, center, scale, nJoints)
         end
     end
 
-    -- output
-    -- input, label, center, scale, normalize
+    -- output: input, label, center, scale, normalize
     return img_transf, keypoints:narrow(2,1,2), center, scale, normalize
 end
 
@@ -398,16 +434,15 @@ end
 
 function getSampleBatch(data_loader, batchSize)
     local sample = {}
-    local batchSize = batchSize or opt.batchSize
+    local batchSize = batchSize or opt.batchSize or 1
 
-    local size = loader.size
-    local mode = string.lower(mode)
+    local size = data_loader.size
 
     -- get batch data
     for i=1, batchSize do
         local idx = torch.random(1, size)
-        local img, keypoints, center, scale, nJoints = data.loader(idx)
-        local imgs_t, heatmaps_t = transform_Data(img, keypoints, center, scale, nJoints)
+        local img, keypoints, center, scale, nJoints = data_loader.loader(idx)
+        local imgs_t, heatmaps_t = transform_data(img, keypoints, center, scale, nJoints)
         table.insert(sample, {imgs_t, heatmaps_t})
     end
 
@@ -431,6 +466,53 @@ function getSampleBatch(data_loader, batchSize)
     return imgs_tensor, heatmaps_tensor
 end
 
+------------------------------------------------------------------------------------------------------------
+
+function getSampleTest(data_loader, idx)
+
+    -- set rotation to 0
+    local rot = 0
+
+    -- Load image + keypoints + other data
+    local img, keypoints, center, scale, nJoints, normalize = data_loader.loader(idx)
+
+    -- Crop image + craft heatmap
+    local img_transf = crop2(img, center, scale, rot, opt.inputRes)
+    local heatmap = torch.zeros(nJoints, opt.outputRes, opt.outputRes)
+    for i = 1,nJoints do
+        -- Checks that there is a ground truth annotation
+        if keypoints[i][1] > 1 then
+            drawGaussian(heatmap[i], mytransform(keypoints[i], center, scale, rot, opt.outputRes), opt.hmGauss or 1)
+        end
+    end
+
+    -- output: input, label, center, scale, normalize
+    return img_transf, keypoints:narrow(2,1,2), center, scale, normalize
+end
+
+------------------------------------------------------------------------------------------------------------
+
+function getSampleBenchmark(data_loader, idx)
+-- TODO
+    -- set rotation to 0
+    local rot = 0
+
+    -- Load image + keypoints + other data
+    local img, keypoints, center, scale, nJoints, normalize = data_loader.loader(idx)
+
+    -- Crop image + craft heatmap
+    local img_transf = crop2(img, center, scale, rot, opt.inputRes)
+    local heatmap = torch.zeros(nJoints, opt.outputRes, opt.outputRes)
+    for i = 1,nJoints do
+        -- Checks that there is a ground truth annotation
+        if keypoints[i][1] > 1 then
+            drawGaussian(heatmap[i], mytransform(keypoints[i], center, scale, rot, opt.outputRes), opt.hmGauss or 1)
+        end
+    end
+
+    -- output: input, label, center, scale, normalize
+    return img_transf, keypoints:narrow(2,1,2), center, scale, normalize
+end
 
 -------------------------------------------------------------------------------
 -- Compute mean/std for the dataset

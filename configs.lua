@@ -21,7 +21,7 @@ torch.setdefaulttensortype('torch.FloatTensor')
 paths.dofile('projectdir.lua') -- Project directory
 paths.dofile('data.lua')
 
-utils = paths.dofile('util/init.lua')
+utils = paths.dofile('util/utils.lua')
 
 
 -----------------------------------------------------------
@@ -42,38 +42,43 @@ if not opt then
     if opt.branch ~= 'none' or opt.continue then
         -- Continuing training from a prior experiment
         -- Figure out which new options have been set
-        local setOpts = {}
-        for i = 1,#arg do
-            if arg[i]:sub(1,1) == '-' then table.insert(setOpts,arg[i]:sub(2,-1)) end
-        end
-        -- Where to load the previous options/model from
-        if opt.branch ~= 'none' then
-            opt.load = opt.expDir .. '/' .. opt.branch
+
+        if paths.filep(opt.save .. '/options.t7') then
+            local setOpts = {}
+            for i = 1,#arg do
+                if arg[i]:sub(1,1) == '-' then table.insert(setOpts,arg[i]:sub(2,-1)) end
+            end
+            -- Where to load the previous options/model from
+            if opt.branch ~= 'none' then
+                opt.load = opt.expDir .. '/' .. opt.branch
+            else
+                opt.load = opt.expDir .. '/' .. opt.expID
+            end
+
+            -- Keep previous options, except those that were manually set
+            local opt_ = opt
+            opt = torch.load(opt_.load .. '/options.t7')
+            opt.save = opt_.save
+            opt.load = opt_.load
+            opt.continue = opt_.continue
+            for i = 1,#setOpts do
+                opt[setOpts[i]] = opt_[setOpts[i]]
+            end
+
+            -- determine highest epoc and load corresponding model
+            local last_epoch = torch.load(opt.load .. '/last_epoch.t7')
+            epoch = last_epoch
+
+            -- If there's a previous optimState, load that too
+            --if paths.filep(opt.load .. '/optim.t7') then
+            --    optimState = torch.load(opt.load .. '/optim.t7')
+            --    optimState.learningRate = opt.LR
+            --elseif paths.filep(opt.load .. '/optim_' .. last_epoch .. '.t7') then
+            --    optimState = torch.load(opt.load .. '/optim_' .. last_epoch .. '.t7')
+            --end
         else
-            opt.load = opt.expDir .. '/' .. opt.expID
+            epoch = 1
         end
-
-        -- Keep previous options, except those that were manually set
-        local opt_ = opt
-        opt = torch.load(opt_.load .. '/options.t7')
-        opt.save = opt_.save
-        opt.load = opt_.load
-        opt.continue = opt_.continue
-        for i = 1,#setOpts do
-            opt[setOpts[i]] = opt_[setOpts[i]]
-        end
-
-        -- determine highest epoc and load corresponding model
-        local last_epoch = torch.load(opt.load .. '/last_epoch.t7')
-        epoch = last_epoch
-
-        -- If there's a previous optimState, load that too
-        --if paths.filep(opt.load .. '/optim.t7') then
-        --    optimState = torch.load(opt.load .. '/optim.t7')
-        --    optimState.learningRate = opt.LR
-        --elseif paths.filep(opt.load .. '/optim_' .. last_epoch .. '.t7') then
-        --    optimState = torch.load(opt.load .. '/optim_' .. last_epoch .. '.t7')
-        --end
     else
         epoch = 1
     end
@@ -145,8 +150,8 @@ local function get_num_keypoints(outputDim)
         return outputDim
     else
         local data_loader = select_dataset_loader(opt.dataset, 'train')
-        local nJoints = data_loader.num_keypoints
-        outputDim = {nJoints, opt.outputRes, opt.outputRes}
+        local nJoints = data_loader.train.num_keypoints
+        return {nJoints, opt.outputRes, opt.outputRes}
     end
 end
 
@@ -176,22 +181,30 @@ function load_model(mode)
         end
 
         -- Load model
-        model, criterion = paths.dofile('model.lua')
+        model, modelSave, criterion = paths.dofile('model.lua')
 
     elseif str == 'test' then
+        -- load model
+        model = torch.load(opt.load)
+
         if opt.GPU >= 1 then
             opt.dataType = 'torch.CudaTensor'  -- Use GPU
+
+            model:cuda()
+
+            -- convert to cuda
+            if pcall(require, 'cudnn') then
+                print('Converting model backend to cudnn...')
+                cudnn.convert(model, cudnn):cuda()
+                print('Done.')
+            end
+
+            model = utils.loadDataParallel(model, 1) -- load model into 1 GPU
         else
             opt.dataType = 'torch.FloatTensor' -- Use CPU
+            model:float()
         end
 
-        model = torch.load(opt.load)
-        model = utils.loadDataParallel(model, 1) -- load model into 1 GPU
-
-        -- convert modules to a specified tensor type
-        function cast(x) return x:type(opt.dataType) end
-
-        cast(model) -- convert network's modules data type
     else
         error(('Invalid mode: %s. mode must be either \'train\' or \'test\''):format(mode))
     end
@@ -212,7 +225,7 @@ function process_mean_std()
             -- compute mean/std
             local data_loader = select_dataset_loader(opt.dataset, 'train')
             print('mean/std cache file not found. Computing mean/std for the ' .. opt.dataset ..' dataset:')
-            local meanstd = ComputeMeanStd(data_loader)
+            local meanstd = ComputeMeanStd(data_loader.train)
             print('Saving mean/std cache to disk: ' .. fname_meanstd)
             torch.save(fname_meanstd, meanstd)
             opt.meanstd = meanstd

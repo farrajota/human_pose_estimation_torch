@@ -1,6 +1,42 @@
 --[[
-    Load model into memory.
+    Load model network into memory.
 ]]
+
+
+function convert_model_backend(model, opt, is_gpu)
+    assert(model)
+    assert(opt)
+    assert(is_gpu ~= nil)
+
+    if opt.GPU >= 1 and is_gpu then
+        print('Running on GPU: num_gpus = [' .. opt.nGPU .. ']')
+        require 'cutorch'
+        require 'cunn'
+        --opt.data_type = 'torch.CudaTensor'
+        model:cuda()
+
+        -- require cudnn if available
+        if pcall(require, 'cudnn') then
+            cudnn.convert(model, cudnn):cuda()
+            cudnn.benchmark = true
+            if opt.cudnn_deterministic then
+                model:apply(function(m) if m.setMode then m:setMode(1,1,1) end end)
+            end
+            print('Network has', #model:findModules'cudnn.SpatialConvolution', 'cudnn convolutions')
+        end
+    else
+        print('Running on CPU')
+        --opt.data_type = 'torch.FloatTensor'
+
+        if pcall(require, 'cudnn') then
+            cudnn.convert(model, nn)
+        end
+
+        model:float()
+    end
+    return model
+end
+
 
 --------------------------------------------------------------------------------
 -- Load model
@@ -16,7 +52,7 @@ if opt.continue or opt.branch ~= 'none' then
     else
         prevModel = opt.save .. '/model_' .. epoch .. '.t7'
     end
-    
+
     print('==> Loading model from: ' .. prevModel)
     model = torch.load(prevModel)
     opt.iniEpoch = epoch
@@ -26,7 +62,7 @@ elseif opt.loadModel ~= 'none' then
     assert(paths.filep(opt.loadModel), 'File not found: ' .. opt.loadModel)
     print('==> Loading model from: ' .. opt.loadModel)
     model = torch.load(opt.loadModel)
-    
+
 -- Or we're starting fresh
 else
     print('==> Creating model from file: models/' .. opt.netType .. '.lua')
@@ -40,10 +76,11 @@ end
 --------------------------------------------------------------------------------
 -- Define criterion
 --------------------------------------------------------------------------------
+
 local criterion
 if opt.nOutputs > 0 then
     criterion = nn.ParallelCriterion()
-    
+
     local limits = {1,2}
     local w
     if opt.critweights == 'linear' then
@@ -57,7 +94,7 @@ if opt.nOutputs > 0 then
     else
         w = torch.IntTensor(opt.nOutputs):fill(1)
     end
-    
+
     for i=1, opt.nOutputs do
         local weight = w[i]
         if string.match('MSE', string.upper(opt.crit)) then
@@ -86,7 +123,7 @@ if opt.GPU >= 1 then
     require 'cunn'
     model:cuda()
     criterion:cuda()
-  
+
    -- require cudnn if available
     if pcall(require, 'cudnn') then
         cudnn.convert(model, cudnn):cuda()
@@ -106,42 +143,38 @@ end
 
 
 --------------------------------------------------------------------------------
--- Optimize networks memory usage
+-- Create a copy of the network to ram (for storing purposes only)
+--------------------------------------------------------------------------------
+
+local modelSave = model:clone()
+modelSave = convert_model_backend(modelSave, opt, false)
+
+
+--------------------------------------------------------------------------------
+-- Config network to use multiple GPUs
 --------------------------------------------------------------------------------
 
 local modelOut = nn.Sequential()
 
--- Generate networks graph 
+-- Generate networks graph
 if opt.genGraph > 0 and epoch == 1 then
-  graph.dot(model.fg, 'pose network', paths.concat(opt.save, 'network_graph'))
-  local sys = require 'sys'
-  if #sys.execute('command -v inkscape') > 0 then
-    os.execute(('inkscape -z -e %s  -h 30000 %s'):format(paths.concat(opt.save, 'network_graph.png'),  paths.concat(opt.save, 'network_graph.svg')))
-  end
+    graph.dot(model.fg, 'pose network', paths.concat(opt.save, 'network_graph'))
+    local sys = require 'sys'
+    if #sys.execute('command -v inkscape') > 0 then
+        os.execute(('inkscape -z -e %s  -h 30000 %s'):format(paths.concat(opt.save, 'network_graph.png'),  paths.concat(opt.save, 'network_graph.svg')))
+    end
 end
 
--- optimize network's memory allocations
-if opt.optimize then
-   -- for memory optimizations and graph generation
-   print('Optimize (reduce) network\'s memory usage...')
-   local optnet = require 'optnet'
-  
-   local sample_input = torch.randn(1,3,opt.inputRes,opt.inputRes):float()
-   if opt.GPU>=1 then sample_input=sample_input:cuda() end
-   model:training()
-   optnet.optimizeMemory(model, sample_input, {inplace = false, mode = 'training'})
-   print('Done.')
-end
 
 -- Use multiple gpus
 if opt.GPU >= 1 and opt.nGPU > 1 then
-  if torch.type(model) == 'nn.DataParallelTable' then
-     modelOut:add(utils.loadDataParallel(model, opt.nGPU))
-  else
-     modelOut:add(utils.makeDataParallelTable(model, opt.nGPU))
-  end
+    if torch.type(model) == 'nn.DataParallelTable' then
+        modelOut:add(utils.loadDataParallel(model, opt.nGPU))
+    else
+        modelOut:add(utils.makeDataParallelTable(model, opt.nGPU))
+    end
 else
-  modelOut:add(model)
+    modelOut:add(model)
 end
 
 local function cast(x) return x:type(opt.data_type) end
@@ -153,4 +186,4 @@ cast(modelOut)
 -- Output
 --------------------------------------------------------------------------------
 
-return modelOut, criterion
+return modelOut, modelSave, criterion
