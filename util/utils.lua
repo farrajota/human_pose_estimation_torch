@@ -128,20 +128,21 @@ end
 
 ------------------------------------------------------------------------------------------------------------
 
-local function Str2TableFn(input) -- convert a string into a table 
-    local json = require 'rapidjson'
-    
+local function Str2TableFn(input) -- convert a string into a table
+    --local json = require 'rapidjson'
+    local json = require 'json'
+
     -- replace '{' and '}' by '[' and '], respectively
     input = input:gsub("%{","[")
     input = input:gsub("%}","]")
-    
+
     -- use json decode function to convert the string into a table
     return json.decode(input)
 end
 
 ------------------------------------------------------------------------------------------------------------
 
-local function ConcatTables(tableA, tableB) -- convert a string into a table 
+local function ConcatTables(tableA, tableB) -- convert a string into a table
     local tableOut = {}
     for i=1, #tableA do
         table.insert(tableOut, tableA[i])
@@ -180,10 +181,10 @@ return {
    DisableBias = DisableBias,
 
    makeDataParallelTable = makeDataParallelTable,
-   saveDataParallel = saveDataParallel, 
+   saveDataParallel = saveDataParallel,
    loadDataParallel = loadDataParallel,
-   
-   -- table operations 
+
+   -- table operations
    ReplicateTensor2Table = ReplicateTensor2Table,
    Str2TableFn = Str2TableFn,
    ConcatTables = ConcatTables,

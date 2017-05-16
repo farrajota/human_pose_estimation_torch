@@ -8,7 +8,7 @@
 --end
 
 -- Function for data augmentation, randomly samples on a normal distribution
-local function rnd(x) 
+local function rnd(x)
     return math.max(-2*x,math.min(2*x,torch.randn(1)[1]*x))
 end
 

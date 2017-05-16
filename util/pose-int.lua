@@ -5,7 +5,7 @@ predDim = {nParts,2}
 
 criterion = nn.ParallelCriterion()
 for i = 1,opt.nStack do
-    criterion:add(nn.MSECriterion()) 
+    criterion:add(nn.MSECriterion())
 end
 
 ------------------------------------------------------------------------------------------------------------
