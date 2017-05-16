@@ -1,0 +1,3 @@
+[submodule "human-pose-benchmark"]
+	path = human-pose-benchmark
+	url = https://github.com/farrajota/human-pose-benchmark
