@@ -1,30 +1,41 @@
 --[[
-    Train human pose benchmark script for FLIC/MPII/Leeds/MSCOCO datasets.
+    Produce predictions for a dataset.
+
+    The benchmark algorithm only works for the FLIC and LSP datasets.
+    The MPII and MSCOCO datasets have a dedicated online server for evaluation.
 --]]
 
-require 'torch'
+
 require 'paths'
+require 'torch'
 require 'string'
 
-
---------------------------------------------------------------------------------
--- Load configs (data, model, criterion, optimState)
---------------------------------------------------------------------------------
-
-paths.dofile('configs_benchmark.lua')
-
--- set local vars
-local lopt = opt
-local dataset = g_dataset
-local nSamples = g_dataset[opt.setname].object:size(1)
-
--- load torchnet package
 local tnt = require 'torchnet'
 
 
---paths.dofile('data.lua')
---local data = loadDataBenchmark(1, dataset.val, 'val')
---aqui=1
+--------------------------------------------------------------------------------
+-- Load configs
+--------------------------------------------------------------------------------
+
+paths.dofile('configs.lua')
+
+-- load model from disk
+load_model('test')
+
+-- set local vars
+local lopt = opt
+local nSamples, num_keypoints
+do
+    local mode = 'test'
+    local data_loader = select_dataset_loader(opt.dataset, mode)
+    local loader = data_loader[mode]
+    nSamples = loader.size
+    num_keypoints = loader.num_keypoints
+end
+
+-- convert modules to a specified tensor type
+local function cast(x) return x:type(opt.dataType) end
+
 
 --------------------------------------------------------------------------------
 -- Setup data generator
@@ -34,7 +45,7 @@ local function getIterator(mode)
     return tnt.ParallelDatasetIterator{
         nthread = opt.nThreads,
         ordered = true,
-        init    = function(threadid) 
+        init    = function(threadid)
                     require 'torch'
                     require 'torchnet'
                     opt = lopt
@@ -42,16 +53,17 @@ local function getIterator(mode)
                     torch.manualSeed(threadid+opt.manualSeed)
                   end,
         closure = function()
-          
-            -- setup data
-            local data = dataset[mode]
-          
+
+            -- setup data loader
+            local data_loader = select_dataset_loader(opt.dataset, mode)
+            local loader = data_loader[mode]
+
             -- setup dataset iterator
             return tnt.ListDataset{
                 list = torch.range(1, nSamples):long(),
                 load = function(idx)
-                    local input, parts, center, scale, normalize = loadDataBenchmark(idx, data, mode)
-                    return {input, parts, center, scale, normalize}
+                    local input, center, scale, normalize = getSampleBenchmark(loader, idx)
+                    return {input, center, scale, normalize}
                 end
             }:batch(1, 'include-last')
         end,
@@ -67,15 +79,9 @@ end
 local engine = tnt.OptimEngine()
 
 engine.hooks.onStart = function(state)
-    if opt.predictions == 0 then
-        print('\n*********************************************************')
-        print(('Start testing/benchmarking the network on the %s dataset: '):format(opt.dataset))
-        print('*********************************************************')
-    else
-        print('\n***************************************************')
-        print(('Start processing predictions for the %s dataset: '):format(opt.dataset))
-        print('***************************************************')
-    end
+    print('\n***************************************************')
+    print(('Start processing predictions for the %s dataset: '):format(opt.dataset))
+    print('***************************************************')
 end
 
 
@@ -90,17 +96,17 @@ engine.hooks.onSample = function(state)
     center  = state.sample[3][1]
     scale   = state.sample[4][1]
     normalize = state.sample[5][1]
-    
+
     state.sample.input  = inputs
 end
 
 
 local predictions, distances = {}, {}
-local coords = torch.FloatTensor(2,outputDim[1],nSamples):fill(0)
+local coords = torch.FloatTensor(2, num_keypoints, nSamples):fill(0)
 
 engine.hooks.onForward= function(state)
     xlua.progress(state.t, nSamples)
-    
+
     -- fetch predictions of body joints from the last output
     local output
     if type(state.network.output) == 'table' then
@@ -109,123 +115,77 @@ engine.hooks.onForward= function(state)
     else
         output = state.network.output[1]:float()
     end
-    
+
     -- clamp negatives values to 0
     output[output:lt(0)] = 0
-    
-    
+
+
     -- store predictions into a table
     table.insert(predictions, {output, center, scale})
-    
+
     -- compute the distance accuracy
     -- Get predictions (hm and img refer to the coordinate space)
     local preds_hm, preds_img = getPredsBenchmark(output, center, scale)
-    
-    -- compute distances
-    table.insert(distances, calcDistsOne(preds_img:squeeze(), parts, normalize):totable())
-    
+
     -- add coordinates to the coords tensor
     coords[{{},{},{state.t}}] = preds_img:transpose(2,3):squeeze()
-    
+
     collectgarbage()
 end
 
 
 engine.hooks.onEnd= function(state)
-  
-    local labels = {'Validation'}
-    local res = {}
-    local dists = {torch.FloatTensor(distances):transpose(1,2)}
-    
-    -- plot benchmark results
-    require 'gnuplot'
-    gnuplot.raw('set bmargin 1')
-    gnuplot.raw('set lmargin 3.2')
-    gnuplot.raw('set rmargin 2')
-    if opt.dataset=='mpii' then
-        gnuplot.raw(('set multiplot layout 2,3 title "%s Validation Set Performance (PCKh@%.1f)"'):format(string.upper(opt.dataset), opt.threshold))
-    else
-        gnuplot.raw(('set multiplot layout 2,3 title "%s Validation Set Performance (PCK@%.1f)"'):format(string.upper(opt.dataset), opt.threshold))
-    end
-      
-    gnuplot.raw('set xtics font ",6"')
-    gnuplot.raw('set ytics font ",6"')
-    
-    if opt.dataset == 'mpii' then
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {9,10}, labels, 'Head', opt.threshold), 'Head'})
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {2,5}, labels, 'Knee', opt.threshold), 'Knee'})
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {1,6}, labels, 'Ankle', opt.threshold), 'Ankle'})
-        print('-----------------------------------')
-        gnuplot.raw('set tmargin 2.5')
-        gnuplot.raw('set bmargin 1.5')
-        table.insert(res, {displayPCK(dists, {13,14}, labels, 'Shoulder', opt.threshold), 'Shoulder'})
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {12,15}, labels, 'Elbow', opt.threshold), 'Elbow'})
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {11,16}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
-        print('-----------------------------------')
-        
-    elseif opt.dataset == 'flic' then
-        table.insert(res, {displayPCK(dists, {1,4}, labels, 'Shoulder', opt.threshold), 'Shoulder'})
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {2,5}, labels, 'Elbow', opt.threshold), 'Elbow'})
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {3,6}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
-        print('-----------------------------------')
-        
-    elseif opt.dataset == 'lsp' then
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {13,14}, labels, 'Head', opt.threshold), 'Head'})
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {3,4}, labels, 'Hip', opt.threshold), 'Hip'})
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {2,5}, labels, 'Knee', opt.threshold), 'Knee'})
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {1,6}, labels, 'Ankle', opt.threshold), 'Ankle'})
-        print('-----------------------------------')
-        gnuplot.raw('set tmargin 2.5')
-        gnuplot.raw('set bmargin 1.5')
-        table.insert(res, {displayPCK(dists, {9,10}, labels, 'Shoulder', opt.threshold), 'Shoulder'})
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {8,11}, labels, 'Elbow', opt.threshold), 'Elbow'})
-        print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {7,12}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
-        print('-----------------------------------')
-    elseif opt.dataset == 'mscoco' or opt.dataset == 'coco' then
-    else
-    end
-  
-    gnuplot.raw('unset multiplot')
-    gnuplot.pngfigure(paths.concat(opt.save, 'Validation_Set_Performance_PCKh.png')) 
-    gnuplot.plotflush()
-    
-    json.save(paths.concat(opt.save,'Validation_Set_Performance_results.json'), json.encode(res))
-    
     if opt.predictions > 0 then
         print('Storing predictions to disk.. ')
         local matio = require 'matio'
         torch.save(paths.concat(opt.save,'Predictions.t7'), {pred=coords})
         matio.save(paths.concat(opt.save,'Predictions.mat'),{pred=coords:double()})
-        json.save(paths.concat(opt.save,'Validation_Set_Performance_results.json'), json.encode(res))
     end
-    
 end
 
 
 --------------------------------------------------------------------------------
--- Benchmark/process predictions
+-- process predictions
 --------------------------------------------------------------------------------
 
 engine:test{
     network  = model,
-    iterator = (opt.predictions==0 and getIterator('val')) or getIterator('test')
+    iterator = getIterator('test')
 }
 
-if opt.predictions == 0 then
-    print('\nBenchmark script complete.')
+print('\nPredictions script complete.')
+
+
+--------------------------------------------------------------------------------
+-- Benchmark algorithm
+--------------------------------------------------------------------------------
+
+local str = string.lower(opt.dataset)
+if str == 'flic' or str == 'lsp'  then
+    -- setup algorithm folder
+    local bench_alg_path = paths.concat(projectDir, 'human_pose_benchmark', 'algorithms', opt.eval_plot_name)
+    if not paths.dirp(save_path) then
+        print('Saving everything to: ' .. bench_alg_path)
+        os.execute('mkdir -p ' .. bench_alg_path)
+        os.execute('echo \'Ours\' %s' .. paths.concat(bench_alg_path, 'algorithms.txt'))
+    end
+
+    -- rename predictions file
+    local filename_old = paths.concat(opt.save,'Predictions.mat')
+    local filename_new
+    if str == 'flic' then
+        filename_new = paths.concat(bench_alg_path, 'pred_keypoints_flic_oc.mat')
+    else
+        filename_new = paths.concat(bench_alg_path, 'pred_keypoints_lsp_pc.mat')
+    end
+    os.execute(('mv %s %s'):format(filename_old, filename_new))
+
+    -- process benchmark
+    local command = ('cd %s && matlab -nodisplay -nodesktop -r "try, %s, catch, exit, end, exit"')
+                    :format(paths.concat(projectDir, 'human_pose_benchmark'), 'benchmark_' .. str)
+    os.execute(command)
+elseif str == 'mpii' or str == 'mscoco' then
+    -- TODO
 else
-    print('\nPredictions script complete.')
+    error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | mscoco'):format(name))
 end
