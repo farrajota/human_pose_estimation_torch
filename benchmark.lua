@@ -159,8 +159,10 @@ print('\nPredictions script complete.')
 
 local str = string.lower(opt.dataset)
 if str == 'flic' or str == 'lsp'  then
+    local benchmark_folder = paths.concat(projectDir, 'human-pose-benchmark')
+
     -- setup algorithm folder
-    local bench_alg_path = paths.concat(projectDir, 'human-pose-benchmark', 'algorithms', opt.eval_plot_name)
+    local bench_alg_path = paths.concat(benchmark_folder, 'algorithms', opt.eval_plot_name)
     if not paths.dirp(bench_alg_path) then
         print('Saving everything to: ' .. bench_alg_path)
         os.execute('mkdir -p ' .. bench_alg_path)
@@ -179,8 +181,11 @@ if str == 'flic' or str == 'lsp'  then
 
     -- process benchmark
     local command = ('cd %s && matlab -nodisplay -nodesktop -r "try, %s, catch, exit, end, exit"')
-                    :format(paths.concat(projectDir, 'human-pose-benchmark'), 'benchmark_' .. str)
+                    :format(benchmark_folder, 'benchmark_' .. str)
     os.execute(command)
+
+    -- copy plots folder to the experiment dir
+    os.execute(('cp -avr %s %s'):format(paths.concat(benchmark_folder, 'plots'), paths.concat(opt.save, 'plots')))
 elseif str == 'mpii' or str == 'mscoco' then
     -- TODO
 else
