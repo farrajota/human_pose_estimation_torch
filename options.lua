@@ -10,6 +10,7 @@ local function Parse(arg)
     cmd:option('-expID',        'hg-generic', 'Experiment ID')
     cmd:option('-ensembleID',   'hg-generic-best', 'Experiment ID')
     cmd:option('-dataset',        'flic', 'Dataset choice: mpii | flic | lsp | mscoco | mpii+lsp')
+    cmd:option('-data_dir',       'none', 'Path to store the dataset\'s data files.')
     cmd:option('-expDir',   projectDir .. '/exp',  'Experiments directory')
     cmd:option('-manualSeed',          2, 'Manually set RNG seed')
     cmd:option('-GPU',                 1, 'Default preferred GPU, if set to -1: no GPU')
@@ -106,10 +107,8 @@ local function Parse(arg)
 
     opt.schedule = utils.Str2TableFn(opt.schedule)
 
-    if opt.predictions==0 then
-        opt.setname = 'val'
-    else
-        opt.setname = 'test'
+    if string.lower(opt.data_dir) == 'none' then
+        opt.data_dir = ''
     end
 
     -- data augment testing vars

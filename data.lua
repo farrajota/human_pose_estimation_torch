@@ -39,13 +39,13 @@ local function get_db_loader(name)
     local dbloader
     local str = string.lower(name)
     if str == 'flic' then
-        dbloader = dbc.load{name='flic', task='keypoints_d'}
+        dbloader = dbc.load{name='flic', task='keypoints_d', data_dir=opt.data_dir}
     elseif str == 'lsp' then
-        dbloader = dbc.load{name='leeds_sports_pose_extended', task='keypoints_d'}
+        dbloader = dbc.load{name='leeds_sports_pose_extended', task='keypoints_d', data_dir=opt.data_dir}
     elseif str == 'mpii' then
-        dbloader = dbc.load{name='mpii_pose', task='keypoints_d'}
+        dbloader = dbc.load{name='mpii_pose', task='keypoints_d', data_dir=opt.data_dir}
     elseif str == 'mscoco' then
-        dbloader = dbc.load{name='mscoco', task='keypoint_2016_d'}
+        dbloader = dbc.load{name='mscoco', task='keypoint_2016_d', data_dir=opt.data_dir}
     else
         error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | mscoco'):format(name))
     end
