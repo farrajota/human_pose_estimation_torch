@@ -37,6 +37,7 @@ The network model provided in the code is an enhanced version of [Newell's](http
 | Chen et al., NIPS'14  | 89.8 | 86.8 |
 | Wei et al., CVPR'16  | 92.5 | 90.0 |
 | Newell et al., arXiv'16  | 98.0 | 95.5 |
+| --- | --- | --- |
 | Ours  | **98.3** | **96.0** |
 
 
@@ -60,6 +61,7 @@ The network model provided in the code is an enhanced version of [Newell's](http
 | Insafutdinov et al., ECCV'16  | 97.4 | 92.7  | 87.5  | 84.4  | 91.5  | 89.9 | 87.2 | 90.1 |
 | Wei et al., CVPR'16  | **97.8** | 92.5  | 87.0  | 83.9  | 91.5  | 90.8 | 89.9 | 90.5 |
 | Bulat et al., ECCV'16  | 97.2 | 92.1  | 88.1  | 85.2  | **92.2**  | 91.4 | 88.7 | 90.7 |
+| --- | --- | --- | --- | --- | --- | ---  | --- | --- |
 | Ours  | 97.7 | **93.0**  | **88.9**  | **85.5**  | 91.5  | **92.0** | **92.1** | **91.5** |
 
 
