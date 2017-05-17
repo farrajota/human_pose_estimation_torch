@@ -92,10 +92,9 @@ local targets, center, scale, normalize, t_matrix
 engine.hooks.onSample = function(state)
     cutorch.synchronize(); collectgarbage();
     inputs:resize(state.sample[1]:size() ):copy(state.sample[1])
-    parts   = state.sample[2][1]
-    center  = state.sample[3][1]
-    scale   = state.sample[4][1]
-    normalize = state.sample[5][1]
+    center  = state.sample[2][1]
+    scale   = state.sample[3][1]
+    normalize = state.sample[4][1]
 
     state.sample.input  = inputs
 end
@@ -135,12 +134,10 @@ end
 
 
 engine.hooks.onEnd= function(state)
-    if opt.predictions > 0 then
-        print('Storing predictions to disk.. ')
-        local matio = require 'matio'
-        torch.save(paths.concat(opt.save,'Predictions.t7'), {pred=coords})
-        matio.save(paths.concat(opt.save,'Predictions.mat'),{pred=coords:double()})
-    end
+    print('Storing predictions to disk.. ')
+    local matio = require 'matio'
+    torch.save(paths.concat(opt.save,'Predictions.t7'), {pred=coords})
+    matio.save(paths.concat(opt.save,'Predictions.mat'),{pred=coords:double()})
 end
 
 
@@ -163,13 +160,13 @@ print('\nPredictions script complete.')
 local str = string.lower(opt.dataset)
 if str == 'flic' or str == 'lsp'  then
     -- setup algorithm folder
-    local bench_alg_path = paths.concat(projectDir, 'human_pose_benchmark', 'algorithms', opt.eval_plot_name)
-    if not paths.dirp(save_path) then
+    local bench_alg_path = paths.concat(projectDir, 'human-pose-benchmark', 'algorithms', opt.eval_plot_name)
+    if not paths.dirp(bench_alg_path) then
         print('Saving everything to: ' .. bench_alg_path)
         os.execute('mkdir -p ' .. bench_alg_path)
-        os.execute('echo \'Ours\' %s' .. paths.concat(bench_alg_path, 'algorithms.txt'))
+        os.execute(('echo \'Ours\' > %s'):format(paths.concat(bench_alg_path, 'algorithm.txt')))
     end
-
+    
     -- rename predictions file
     local filename_old = paths.concat(opt.save,'Predictions.mat')
     local filename_new
@@ -178,11 +175,11 @@ if str == 'flic' or str == 'lsp'  then
     else
         filename_new = paths.concat(bench_alg_path, 'pred_keypoints_lsp_pc.mat')
     end
-    os.execute(('mv %s %s'):format(filename_old, filename_new))
+    os.execute(('cp %s %s'):format(filename_old, filename_new))
 
     -- process benchmark
     local command = ('cd %s && matlab -nodisplay -nodesktop -r "try, %s, catch, exit, end, exit"')
-                    :format(paths.concat(projectDir, 'human_pose_benchmark'), 'benchmark_' .. str)
+                    :format(paths.concat(projectDir, 'human-pose-benchmark'), 'benchmark_' .. str)
     os.execute(command)
 elseif str == 'mpii' or str == 'mscoco' then
     -- TODO

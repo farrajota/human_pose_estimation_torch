@@ -493,7 +493,7 @@ end
 ------------------------------------------------------------------------------------------------------------
 
 function getSampleBenchmark(data_loader, idx)
--- TODO
+
     -- set rotation to 0
     local rot = 0
 
@@ -502,16 +502,9 @@ function getSampleBenchmark(data_loader, idx)
 
     -- Crop image + craft heatmap
     local img_transf = crop2(img, center, scale, rot, opt.inputRes)
-    local heatmap = torch.zeros(nJoints, opt.outputRes, opt.outputRes)
-    for i = 1,nJoints do
-        -- Checks that there is a ground truth annotation
-        if keypoints[i][1] > 1 then
-            drawGaussian(heatmap[i], mytransform(keypoints[i], center, scale, rot, opt.outputRes), opt.hmGauss or 1)
-        end
-    end
 
     -- output: input, label, center, scale, normalize
-    return img_transf, keypoints:narrow(2,1,2), center, scale, normalize
+    return img_transf, center, scale, normalize
 end
 
 -------------------------------------------------------------------------------
