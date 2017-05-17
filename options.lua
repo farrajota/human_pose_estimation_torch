@@ -84,6 +84,11 @@ local function Parse(arg)
     cmd:text()
     cmd:option('-eval_plot_name', 'Ours', 'Plot the model with a specfied name.')
     cmd:text()
+    cmd:text(' ---------- Demo options --------------------------------------')
+    cmd:text()
+    cmd:option('-demo_nsamples',        5, 'Number of samples to display predictions.')
+    cmd:option('-demo_plot_save', 'false', 'Save plots to disk.')
+    cmd:text()
 
 
     local opt = cmd:parse(arg or {})
@@ -116,7 +121,7 @@ local function Parse(arg)
     opt.saveBest    = utils.Str2Bool(opt.saveBest)
     --opt.critweights = utils.Str2Bool(opt.critweights)
     opt.reprocess = utils.Str2Bool(opt.reprocess)
-    opt.plotSave = utils.Str2Bool(opt.plotSave)
+    opt.demo_plot_save = utils.Str2Bool(opt.demo_plot_save)
 
     return opt
 end

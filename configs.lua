@@ -183,6 +183,7 @@ function load_model(mode)
         -- Load model
         model, modelSave, criterion = paths.dofile('model.lua')
 
+        model:training()
     elseif str == 'test' then
         -- load model
         model = torch.load(opt.load)
@@ -205,6 +206,7 @@ function load_model(mode)
             model:float()
         end
 
+        model:evaluate()
     else
         error(('Invalid mode: %s. mode must be either \'train\' or \'test\''):format(mode))
     end
