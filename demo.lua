@@ -54,6 +54,8 @@ print('\n==============================================')
 print(('Selected dataset: %s'):format(opt.dataset))
 print('==============================================\n')
 
+print('Processing image predictions...')
+
 local mode = 'test'
 
 -- setup data loader
