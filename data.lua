@@ -71,8 +71,8 @@ local function loader_flic(set_name)
         local data = dbloader:object(set_name, idx, true)[1]
 
         local filename = paths.concat(dbloader.data_dir, ascii2str(data[1])[1])
-        local keypoints = data[4]:float()
-        local torso_bbox = data[3]:float():squeeze()
+        local keypoints = data[3]:float()
+        local torso_bbox = data[2]:float():squeeze()
         local center = torch.FloatTensor({(torso_bbox[1]+torso_bbox[3])/2,
                                           (torso_bbox[2]+torso_bbox[4])/2})
         local scale = 2.2
