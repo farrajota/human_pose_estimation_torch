@@ -185,7 +185,7 @@ if str == 'flic' or str == 'lsp'  then
     os.execute(command)
 
     -- copy plots folder to the experiment dir
-    os.execute(('cp -avr %s %s'):format(paths.concat(benchmark_folder, 'plots'), paths.concat(opt.save, 'plots')))
+    os.execute(('cp -ar %s %s'):format(paths.concat(benchmark_folder, 'plots'), paths.concat(opt.save, 'plots')))
 elseif str == 'mpii' or str == 'mscoco' then
     -- TODO
 else
