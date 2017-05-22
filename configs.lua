@@ -183,7 +183,7 @@ function load_model(mode)
         end
 
         -- Load model
-        model, modelSave, criterion = paths.dofile('model.lua')
+        model, criterion = paths.dofile('model.lua')
 
         model:training()
     elseif str == 'test' then
@@ -192,7 +192,6 @@ function load_model(mode)
 
         if opt.GPU >= 1 then
             opt.dataType = 'torch.CudaTensor'  -- Use GPU
-
             model:cuda()
 
             -- convert to cuda
@@ -203,6 +202,7 @@ function load_model(mode)
             end
 
             model = utils.loadDataParallel(model, 1) -- load model into 1 GPU
+            model:cuda()
         else
             opt.dataType = 'torch.FloatTensor' -- Use CPU
             model:float()

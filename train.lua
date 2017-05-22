@@ -205,10 +205,10 @@ engine.hooks.onEndEpoch = function(state)
     -----------------------------
 
     --storeModel(state.network.modules[1], state.config, state.epoch, opt)
-    storeModel(state.network.modules[1], modelSave, state.config, state.epoch, opt)
+    storeModel(state.network.modules[1], state.config, state.epoch, opt)
 
     if ts_accuracy > test_best_accu and opt.saveBest then
-        storeModelBest(state.network.modules[1], modelSave, opt)
+        storeModelBest(state.network.modules[1], opt)
         test_best_accu = ts_accuracy
     end
 

@@ -3,41 +3,6 @@
 ]]
 
 
-function convert_model_backend(model, opt, is_gpu)
-    assert(model)
-    assert(opt)
-    assert(is_gpu ~= nil)
-
-    if opt.GPU >= 1 and is_gpu then
-        print('Running on GPU: num_gpus = [' .. opt.nGPU .. ']')
-        require 'cutorch'
-        require 'cunn'
-        --opt.data_type = 'torch.CudaTensor'
-        model:cuda()
-
-        -- require cudnn if available
-        if pcall(require, 'cudnn') then
-            cudnn.convert(model, cudnn):cuda()
-            cudnn.benchmark = true
-            if opt.cudnn_deterministic then
-                model:apply(function(m) if m.setMode then m:setMode(1,1,1) end end)
-            end
-            print('Network has', #model:findModules'cudnn.SpatialConvolution', 'cudnn convolutions')
-        end
-    else
-        print('Running on CPU')
-        --opt.data_type = 'torch.FloatTensor'
-
-        if pcall(require, 'cudnn') then
-            cudnn.convert(model, nn)
-        end
-
-        model:float()
-    end
-    return model
-end
-
-
 --------------------------------------------------------------------------------
 -- Load model
 --------------------------------------------------------------------------------
@@ -143,14 +108,6 @@ end
 
 
 --------------------------------------------------------------------------------
--- Create a copy of the network to ram (for storing purposes only)
---------------------------------------------------------------------------------
-
-local modelSave = model:clone()
-modelSave = convert_model_backend(modelSave, opt, false)
-
-
---------------------------------------------------------------------------------
 -- Config network to use multiple GPUs
 --------------------------------------------------------------------------------
 
@@ -186,4 +143,4 @@ cast(modelOut)
 -- Output
 --------------------------------------------------------------------------------
 
-return modelOut, modelSave, criterion
+return modelOut, criterion
