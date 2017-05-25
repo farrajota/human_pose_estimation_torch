@@ -38,11 +38,11 @@ local function fitParabola(x1,x2,x3,y1,y2,y3)
   local x1_sqr = x1*x1
   local x2_sqr = x2*x2
   local x3_sqr = x3*x3
-  
+
   local div = (x1_sqr-x1*(x2+x3)+x2*x3)*(x2-x3)
   local a = (x1*(y2-y3)-x2*(y1-y3)+x3*(y1-y2))/div
   local b = (x1_sqr*(y2-y3)-x2_sqr*(y1-y3)+x3_sqr*(y1-y2))/div
-  
+
   return b/(2*a)
 end
 
@@ -54,13 +54,13 @@ local function fitParabolaAll(hms, coords)
         for j=1, nparts do
             local x = {coords[i][j][1]-1, coords[i][j][1], coords[i][j][1]+1}
             local y = {coords[i][j][2]-1, coords[i][j][2], coords[i][j][2]+1}
-            
+
             if x[1]>=1 and x[3]<=w and y[2]>=1 and y[2]<=h then
                 preds[i][j][1] = fitParabola(x[1],x[2],x[3],hms[i][j][y[2]][x[1]],hms[i][j][y[2]][x[2]],hms[i][j][y[2]][x[3]])
             else
                 preds[i][j][1]=x[2] -- skip parabola fitting for this coordinate
             end
-            
+
             if y[1]>=1 and y[3]<=h and x[2]>=1 and x[2]<=w then
                 preds[i][j][2] = fitParabola(y[1],y[2],y[3],hms[i][j][y[1]][x[2]],hms[i][j][y[2]][x[2]],hms[i][j][y[3]][x[2]])
             else
@@ -79,13 +79,13 @@ function getPreds(hm)
     --local preds = torch.repeatTensor(idx, 1, 1, 2):float()
     --preds[{{}, {}, 1}]:apply(function(x) return (x - 1) % hm:size(4) + 1 end)
     --preds[{{}, {}, 2}]:add(-1):div(hm:size(3)):floor():add(1)
-    
+
     local max, idx = torch.max(hm:view(hm:size(1), hm:size(2), hm:size(3) * hm:size(4)), 3)
     local coords_peak = torch.repeatTensor(idx, 1, 1, 2):float()
     coords_peak[{{}, {}, 1}]:apply(function(x) if x%hm:size(4)==0 then return hm:size(4) else return x%hm:size(4) end end)
     coords_peak[{{}, {}, 2}]:div(hm:size(3)):ceil()
     local preds = fitParabolaAll(hm, coords_peak)
-    
+
     return preds
 end
 
@@ -99,14 +99,14 @@ function getPredsBenchmark(hms, center, scale)
    -- local preds = torch.repeatTensor(idx, 1, 1, 2):float()
    -- preds[{{}, {}, 1}]:apply(function(x) return (x - 1) % hms:size(4) + 1 end)
    -- preds[{{}, {}, 2}]:add(-1):div(hms:size(3)):floor():add(.5)
-    
+
     -- Get locations of maximum activations (using sub-pixel precision)
     local max, idx = torch.max(hms:view(hms:size(1), hms:size(2), hms:size(3) * hms:size(4)), 3)
     local coords_peak = torch.repeatTensor(idx, 1, 1, 2):float()
     coords_peak[{{}, {}, 1}]:apply(function(x) return x % hms:size(4) end)
     coords_peak[{{}, {}, 2}]:div(hms:size(3)):ceil()
     local preds = fitParabolaAll(hms, coords_peak)
-    
+
     -- Get transformed coordinates
     local preds_tf = torch.zeros(preds:size())
     for i = 1,hms:size(1) do        -- Number of samples
@@ -145,20 +145,20 @@ function heatmapAccuracy(output, label, thr, idxs)
     if not idxs then
         for i = 1,dists:size(1) do
             acc[i+1] = distAccuracy(dists[i], thr)
-            if acc[i+1] >= 0 then 
+            if acc[i+1] >= 0 then
                 avgAcc = avgAcc + acc[i+1]
-            else 
-                badIdxCount = badIdxCount + 1 
+            else
+                badIdxCount = badIdxCount + 1
             end
         end
         acc[1] = avgAcc / (dists:size(1) - badIdxCount)
     else
         for i = 1,#idxs do
             acc[i+1] = distAccuracy(dists[idxs[i]], thr)
-            if acc[i+1] >= 0 then 
+            if acc[i+1] >= 0 then
                 avgAcc = avgAcc + acc[i+1]
-            else 
-                badIdxCount = badIdxCount + 1 
+            else
+                badIdxCount = badIdxCount + 1
             end
         end
         acc[1] = avgAcc / (#idxs - badIdxCount)
@@ -212,12 +212,12 @@ function displayPCK(dists, part_idx, label, title, threshold, show_key)
 
     require 'gnuplot'
     gnuplot.raw('set title "' .. title .. '"')
-    if not show_key then gnuplot.raw('unset key') 
+    if not show_key then gnuplot.raw('unset key')
     else gnuplot.raw('set key font ",6" right bottom') end
     gnuplot.raw(('set xrange [0:%.2f]'):format(thresh))
     gnuplot.raw('set yrange [0:1]')
     gnuplot.plot(unpack(plot_args))
-    
+
     return results
 end
 
@@ -227,7 +227,7 @@ function accuracy(output,label)
     --local jntIdxs = {mpii={1,2,3,4,5,6,11,12,15,16},flic={2,3,5,6,7,8}}
     local jntIdxs = {
         ['mpii']={1,2,3,4,5,6,10,11,12,13,14,15,16},
-        ['flic']={1,2,3,4,5,6}, 
+        ['flic']={1,2,3,4,5,6},
         ['lsp']={1,2,3,4,5,6,7,8,9,10,11,12,13,14},
         ['mscoco']={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17},
         ['mpii+lsp']={1,2,3,4,5,6,7,8,9,10,11,12,13,14}

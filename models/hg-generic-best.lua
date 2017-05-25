@@ -53,7 +53,7 @@ local function createModel()
         -- Predicted heatmaps
         local spDropout_Out = nn.SpatialDropout(opt.spatialdropout)(ll)
         local tmpOut = nn.SpatialConvolution(opt.nFeats,outputDim[1][1],1,1,1,1,0,0)(spDropout_Out)
-        
+
         if i > 1 then
             local concat = nn.JoinTable(2)({tmpOut,out[#out]})
             local tmpOut2 = nn.SpatialConvolution(outputDim[1][1]*2,outputDim[1][1],1,1,1,1,0,0)(concat)

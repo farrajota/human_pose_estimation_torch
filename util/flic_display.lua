@@ -69,7 +69,7 @@ opt.expDir = paths.concat(opt.expDir, opt.dataset)
 opt.dataDir = paths.concat(opt.dataDir, opt.dataset)
 opt.save = paths.concat(opt.expDir, opt.expID)
 
-if opt.loadModel == 'none' then 
+if opt.loadModel == 'none' then
     opt.loadModel = 'final_model.t7'
 else
     local str = string.split(opt.loadModel, '/')
@@ -97,7 +97,7 @@ local function loadAnnotations(set)
     if opt.dataset == 'flic' then
       if set == 'test' then set = 'valid' end
     end
-    
+
     local a = hdf5.open(paths.concat(projectDir, 'data', opt.dataset, 'annot/' .. set .. '.h5'))
     local annot = {}
 
@@ -132,7 +132,7 @@ end
 -- Load model
 --------------------------------------------------------------------------------
 
-if opt.GPU >= 1 then 
+if opt.GPU >= 1 then
     opt.dataType = 'torch.CudaTensor'  -- Use GPU
 else
     opt.dataType = 'torch.FloatTensor' -- Use CPU
@@ -143,7 +143,7 @@ local model = utils.loadDataParallel((paths.concat(opt.expDir, opt.expID, opt.lo
 model:evaluate()
 
 -- convert modules to a specified tensor type
-local function cast(x) return x:type(opt.dataType) end  
+local function cast(x) return x:type(opt.dataType) end
 
 cast(model) -- convert network's modules data type
 
@@ -151,7 +151,7 @@ if opt.optimize then
    -- for memory optimizations and graph generation
    print('Optimize (reduce) network\'s memory usage...')
    local optnet = require 'optnet'
-  
+
    local sample_input = torch.randn(1,3,opt.inputRes,opt.inputRes):float()
    if opt.GPU>=1 then sample_input=sample_input:cuda() end
    optnet.optimizeMemory(model, sample_input, {inplace = true, reuseBuffers = true, mode = 'inference'})
@@ -179,7 +179,7 @@ for k, set in pairs(labels) do
     -- Displays a convenient progress bar
     xlua.progress(0,nsamples)
     local preds = torch.Tensor(nsamples,16,2)
-    
+
     -- alloc memory in the gpu for faster data transfer
     local input = torch.Tensor(1,3,opt.inputRes, opt.inputRes); input=cast(input)
     for i = 1,nsamples do
@@ -188,16 +188,16 @@ for k, set in pairs(labels) do
         local center = a['center'][idxs[i]]
         local scale = a['scale'][idxs[i]]
         local inp = crop(im, center, scale, 0, 256)
-        
+
         -- Get network output
         input[1]:copy(inp) -- copy data from CPU to GPU
         local out = model:forward(input)
         local hm = out[2][1]:float()
         hm[hm:lt(0)] = 0
-          
+
         -- Get predictions (hm and img refer to the coordinate space)
         local preds_hm, preds_img = getPredsBenchmark(hm, center, scale)
-        
+
         -- Display the result
         preds_hm:mul(4) -- Change to input scale
         local dispImg = drawOutputFLIC(inp, hm, preds_hm[1])
@@ -205,8 +205,8 @@ for k, set in pairs(labels) do
         local partsImg = drawHeatmapPartsFLIC(inp, hm, preds_hm[1])
         if pcall(require, 'qt') then image.display{image=dispImg} end
         --sys.sleep(3)
-        if opt.plotSave then 
-            --image.save(paths.concat(opt.save, 'plot', 'plot_' .. a['images'][idxs[i]]), dispImg) 
+        if opt.plotSave then
+            --image.save(paths.concat(opt.save, 'plot', 'plot_' .. a['images'][idxs[i]]), dispImg)
             image.save(paths.concat(opt.save, 'plot', 'Skeleton_' .. a['images'][idxs[i]]), skeliImg)
         if i > 15 and i < 25 then
             image.save(paths.concat(opt.save, 'plot', 'original_' .. a['images'][idxs[i]]), inp)
@@ -216,9 +216,9 @@ for k, set in pairs(labels) do
             end
             end
         end
-        
+
         xlua.progress(i,nsamples)
-        
+
         collectgarbage()
     end
 end

@@ -1,11 +1,19 @@
 -- Get prediction coordinates
 predDim = {nParts,2}
 
+------------------------------------------------------------------------------------------------------------
+
 criterion = nn.ParallelCriterion()
-for i = 1,opt.nStack do criterion:add(nn.MSECriterion()) end
+for i = 1,opt.nStack do
+    criterion:add(nn.MSECriterion())
+end
+
+------------------------------------------------------------------------------------------------------------
 
 -- Function for data augmentation, randomly samples on a normal distribution
 local function rnd(x) return math.max(-2*x,math.min(2*x,torch.randn(1)[1]*x)) end
+
+------------------------------------------------------------------------------------------------------------
 
 -- Code to generate training samples from raw images.
 function generateSample(set, idx)
@@ -26,16 +34,22 @@ function generateSample(set, idx)
     return inp,out
 end
 
+------------------------------------------------------------------------------------------------------------
+
 function preprocess(input, label)
     newLabel = {}
     for i = 1,opt.nStack do newLabel[i] = label end
     return input, newLabel
 end
 
+------------------------------------------------------------------------------------------------------------
+
 function postprocess(set, idx, output)
     local preds = getPreds(output[#output])
     return preds
 end
+
+------------------------------------------------------------------------------------------------------------
 
 function accuracy(output,label)
     local jntIdxs = {mpii={1,2,3,4,5,6,11,12,15,16},flic={2,3,5,6,7,8}}

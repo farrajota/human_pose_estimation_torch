@@ -1,1 +1,0 @@
-cd .. && th train.lua -dataset flic -trainIters 1000 -trainBatch 4 -expID hg-generic-8stacked -netType hg-generic -nStack 8 -nEpochs 100 -nGPU 1 -optMethod adam

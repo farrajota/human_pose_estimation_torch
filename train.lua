@@ -2,7 +2,6 @@
     Script for training a human pose predictor network.
 --]]
 
-require 'torch'
 require 'paths'
 require 'torch'
 require 'string'
@@ -168,38 +167,51 @@ engine.hooks.onSample = function(state)
     state.sample.target = utils.ReplicateTensor2Table(targets, opt.nOutputs)
 end
 
-local valid_best_accu = 0
+
+local test_best_accu = 0
 engine.hooks.onEndEpoch = function(state)
-    print(('Train Loss: %0.5f; Acc: %0.5f'):format(meters.train_err:value(),  meters.train_accu:value()))
+    ---------------------------------
     -- measure test loss and error:
+    ---------------------------------
+
+    print(('Train Loss: %0.5f; Acc: %0.5f'):format(meters.train_err:value(),  meters.train_accu:value()))
     local tr_loss = meters.train_err:value()
     local tr_accuracy = meters.train_accu:value()
     loggers.train:add{tr_loss, tr_accuracy}
     meters:reset()
     state.t = 0
-    
+
+
+    ---------------------
+    -- test the network
+    ---------------------
+
     print('\n**********************************************')
     print(('Test network (epoch = %d/%d)'):format(state.epoch, state.maxepoch))
     print('**********************************************')
     engine:test{
         network   = model,
-        iterator  = getIterator('val'),
+        iterator  = getIterator('test'),
         criterion = criterion,
     }
-    local vl_loss = meters.valid_err:value()
-    local vl_accuracy = meters.valid_accu:value()
-    loggers.valid:add{vl_loss, vl_accuracy}
-    print(('Validation Loss: %0.5f; Acc: %0.5f'):format(meters.valid_err:value(),  meters.valid_accu:value()))
-    
-    -- store model
+    local ts_loss = meters.test_err:value()
+    local ts_accuracy = meters.test_accu:value()
+    loggers.test:add{ts_loss, ts_accuracy}
+    print(('Test Loss: %0.5f; Acc: %0.5f'):format(meters.test_err:value(),  meters.test_accu:value()))
+
+
+    -----------------------------
+    -- save the network to disk
+    -----------------------------
+
+    --storeModel(state.network.modules[1], state.config, state.epoch, opt)
     storeModel(state.network.modules[1], state.config, state.epoch, opt)
-    
-    if vl_accuracy > valid_best_accu and opt.saveBest then
-        print('New best accuracy detected! Saving model snapshot to disk: ' .. paths.concat(opt.save,'best_model_accuracy.t7'))
-        valid_best_accu = vl_accuracy
-        utils.saveDataParallel(paths.concat(opt.save,'best_model_accuracy.t7'), model)
+
+    if ts_accuracy > test_best_accu and opt.saveBest then
+        storeModelBest(state.network.modules[1], opt)
+        test_best_accu = ts_accuracy
     end
-    
+
     state.t = 0
 end
 
@@ -207,6 +219,7 @@ end
 --------------------------------------------------------------------------------
 -- Train the model
 --------------------------------------------------------------------------------
+
 print('==> Train network model')
 engine:train{
     network   = model,
@@ -222,9 +235,9 @@ engine:train{
 -- Save model
 --------------------------------------------------------------------------------
 
---print('==> Saving final model to disk: ' .. paths.concat(opt.save,'final_model.t7'))
---utils.saveDataParallel(paths.concat(opt.save,'final_model.t7'), model.modules[1]:clearState())
---torch.save(paths.concat(opt.save,'final_optimState.t7'), optimStateFn(nEpochs))
+print('==> Saving final model to disk: ' .. paths.concat(opt.save,'final_model.t7'))
+utils.saveDataParallel(paths.concat(opt.save,'final_model.t7'), model.modules[1]:clearState())
+torch.save(paths.concat(opt.save,'final_optimState.t7'), optimStateFn(nEpochs))
 loggers.test:style{'+-', '+-'}; loggers.test:plot()
 loggers.train:style{'+-', '+-'}; loggers.train:plot()
 loggers.full_train:style{'-', '-'}; loggers.full_train:plot()

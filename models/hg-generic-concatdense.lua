@@ -43,13 +43,13 @@ local function createModel()
 
     for i = 1,opt.nStack do
         local hg = hourglass(4,opt.nFeats,inter)
-        
+
         -- Linear layer to produce first set of predictions
         local ll = lin(opt.nFeats,opt.nFeats,hg)
 
         -- Predicted heatmaps
         local tmpOut = nn.SpatialConvolution(opt.nFeats,outputDim[1][1],1,1,1,1,0,0)(ll)
-        
+
         if i > 1 then
             table.insert(prev,tmpOut)
             local concat = nn.JoinTable(2)(prev)
@@ -61,7 +61,7 @@ local function createModel()
             table.insert(out,tmpOut)
             table.insert(prev,tmpOut)
         end
-        
+
         if i < opt.nStack then inter = nn.CAddTable()({inter, hg}) end
     end
 

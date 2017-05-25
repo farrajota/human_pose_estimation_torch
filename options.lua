@@ -44,10 +44,10 @@ local function Parse(arg)
     cmd:text()
     cmd:text(' ---------- Training options -----------------------------------')
     cmd:text()
-    cmd:option('-nEpochs',           50, 'Total number of epochs to run')
-    cmd:option('-batchSize',          1, 'Mini-batch size')
+    cmd:option('-trainIters',      10, 'Number of train iterations per epoch')
+    cmd:option('-nEpochs',          100, 'Total number of epochs to run')
+    cmd:option('-batchSize',          2, 'Mini-batch size')
     cmd:option('-schedule', "{{30,2.5e-4,0},{10,1e-4,0}}", 'Optimization schedule. Overrides the previous configs if not empty.')
-    --cmd:option('-schedule', "{{5,2.5e-4,0}}", 'Optimization schedule. Overrides the previous configs if not empty.')
     cmd:text()
     cmd:text(' ---------- Data options ---------------------------------------')
     cmd:text()
@@ -69,8 +69,28 @@ local function Parse(arg)
     cmd:option('-pca',            "false", 'ZCA whitening')
     cmd:option('-dropout',              0, 'dropout probability')
     cmd:option('-spatialdropout',       0, 'spatial dropout probability')
-    cmd:option('-critweights',    "none", 'Apply (or not) different weights to the criterion: linear- Linear | steep - steep linear | log - Logaritmic | exp- Exponential | none - disabled')
-    cmd:option('-rotRate',   0.6, 'Rotation probability.')
+    cmd:option('-critweights',     "none", 'Apply (or not) different weights to the criterion: ' ..
+                                           'linear- Linear | steep - steep linear | ' ..
+                                           'log - Logaritmic | exp- Exponential | none - disabled')
+    cmd:option('-rotRate',            0.6, 'Rotation probability.')
+    cmd:text()
+    cmd:text(' ---------- Test options ---------------------------------------')
+    cmd:text()
+    cmd:option('-reprocess', "false",  'Utilize existing predictions from the model\'s folder.')
+    cmd:option('-threshold',     0.2, 'PCKh threshold (default 0.5)')
+    cmd:option('-predictions',     0, 'Generate a predictions file (0-false | 1-true)')
+    cmd:option('-plotSave',   "true", 'Save plot to file (true/false)')
+    cmd:text()
+    cmd:text(' ---------- Benchmark options --------------------------------------')
+    cmd:text()
+    cmd:option('-eval_plot_name', 'Ours', 'Plot the model with a specfied name.')
+    cmd:text()
+    cmd:text(' ---------- Demo options --------------------------------------')
+    cmd:text()
+    cmd:option('-demo_nsamples',        5, 'Number of samples to display predictions.')
+    cmd:option('-demo_plot_save', 'false', 'Save plots to disk.')
+    cmd:text()
+
 
     local opt = cmd:parse(arg or {})
     opt.expDir = paths.concat(opt.expDir, opt.dataset)
@@ -78,7 +98,9 @@ local function Parse(arg)
     opt.ensemble = paths.concat(opt.expDir, opt.ensembleID)
     if opt.loadModel == '' or opt.loadModel == 'none' then
         --opt.load = paths.concat(opt.save, 'final_model.t7')
-        opt.load = paths.concat(opt.save, 'model_final.t7')
+        --opt.load = paths.concat(opt.save, 'model_final.t7')
+        --opt.load = paths.concat(opt.save, 'best_model_accuracy.t7')
+        opt.load = paths.concat(opt.save, 'best_model_accu.t7')
     else
         opt.load = opt.loadModel
     end
@@ -86,17 +108,24 @@ local function Parse(arg)
     if not utils then
         utils = paths.dofile('util/utils.lua')
     end
-    
+
     opt.schedule = utils.Str2TableFn(opt.schedule)
-    
+
+    if string.lower(opt.data_dir) == 'none' then
+        opt.data_dir = ''
+    end
+
     -- data augment testing vars
     opt.continue = utils.Str2Bool(opt.continue)
+    opt.clear_buffers = utils.Str2Bool(opt.clear_buffers)
     opt.colourNorm  = utils.Str2Bool(opt.colourNorm)
     opt.colourjit   = utils.Str2Bool(opt.colourjit)
     opt.pca         = utils.Str2Bool(opt.pca)
     opt.saveBest    = utils.Str2Bool(opt.saveBest)
     --opt.critweights = utils.Str2Bool(opt.critweights)
-    
+    opt.reprocess = utils.Str2Bool(opt.reprocess)
+    opt.demo_plot_save = utils.Str2Bool(opt.demo_plot_save)
+
     return opt
 end
 

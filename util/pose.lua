@@ -1,6 +1,8 @@
 -- Get prediction coordinates
 predDim = {nParts,2}
 
+------------------------------------------------------------------------------------------------------------
+
 -- Code to generate training samples from raw images.
 function generateSample(set, idx)
     local pts = annot[set]['part'][idx]
@@ -20,12 +22,16 @@ function generateSample(set, idx)
     return inp,out
 end
 
+------------------------------------------------------------------------------------------------------------
+
 -- function preprocess(input, label)
 --     require 'image'
 --     w = image.display{image=input,win=w}
 --     w2 = image.display{image=label:view(label:size(1)*label:size(2),label:size(3),label:size(4)),win=w2}
 --     return input, label
 -- end
+
+------------------------------------------------------------------------------------------------------------
 
 function postprocess(set, idx, output)
     -- Return predictions in the heatmap coordinate space
@@ -34,6 +40,8 @@ function postprocess(set, idx, output)
     local preds = getPreds(output)
     return preds
 end
+
+------------------------------------------------------------------------------------------------------------
 
 function accuracy(output,label)
     -- Only care about accuracy across the most difficult joints

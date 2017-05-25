@@ -1,1 +1,0 @@
-cd .. && th train.lua -dataset mpii -trainIters 4000 -trainBatch 4 -expID hg-stacked-mpii -netType hg-stacked -nEpochs 70 -nGPU 1 -optMethod adam -genGraph 1 -snapshot 5 -validIters 2958  

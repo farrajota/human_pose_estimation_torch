@@ -1,1 +1,0 @@
-cd .. && th train.lua -dataset flic -trainIters 1000 -trainBatch 2 -expID hg-generic-widev3-stacked -netType hg-generic-widev3 -nStack 3 -nEpochs 100 -nGPU 2

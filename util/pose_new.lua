@@ -8,7 +8,11 @@
 --end
 
 -- Function for data augmentation, randomly samples on a normal distribution
-local function rnd(x) return math.max(-2*x,math.min(2*x,torch.randn(1)[1]*x)) end
+local function rnd(x)
+    return math.max(-2*x,math.min(2*x,torch.randn(1)[1]*x))
+end
+
+------------------------------------------------------------------------------------------------------------
 
 -- Code to generate training samples from raw images
 function generateSample(set, idx)
@@ -45,6 +49,8 @@ function generateSample(set, idx)
     return inp,out
 end
 
+------------------------------------------------------------------------------------------------------------
+
 -- Load in a mini-batch of data
 function loadData(set, idxs)
     if type(idxs) == 'table' then idxs = torch.Tensor(idxs) end
@@ -75,6 +81,8 @@ function loadData(set, idxs)
     end
 end
 
+------------------------------------------------------------------------------------------------------------
+
 function postprocess(set, idx, output)
     local tmpOutput
     if type(output) == 'table' then tmpOutput = output[#output]
@@ -102,9 +110,11 @@ function postprocess(set, idx, output)
         _,c,s = dataset:getPartInfo(idx[i])
         p_tf[i]:copy(transformPreds(p[i], c, s, opt.outputRes))
     end
-    
+
     return p_tf:cat(p,3):cat(scores,3)
 end
+
+------------------------------------------------------------------------------------------------------------
 
 function accuracy(output,label)
     if type(output) == 'table' then
