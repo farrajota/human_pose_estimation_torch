@@ -224,8 +224,44 @@ engine:test{
     iterator = (opt.predictions==0 and getIterator('val')) or getIterator('test')
 }
 
-if opt.predictions == 0 then
-    print('\nBenchmark script complete.')
+print('\nPredictions script complete.')
+
+
+--------------------------------------------------------------------------------
+-- Benchmark algorithm
+--------------------------------------------------------------------------------
+
+local str = string.lower(opt.dataset)
+if str == 'flic' or str == 'lsp'  then
+    local benchmark_folder = paths.concat(projectDir, 'human-pose-benchmark')
+
+    -- setup algorithm folder
+    local bench_alg_path = paths.concat(benchmark_folder, 'algorithms', opt.eval_plot_name)
+    if not paths.dirp(bench_alg_path) then
+        print('Saving everything to: ' .. bench_alg_path)
+        os.execute('mkdir -p ' .. bench_alg_path)
+        os.execute(('echo \'Ours\' > %s'):format(paths.concat(bench_alg_path, 'algorithm.txt')))
+    end
+
+    -- rename predictions file
+    local filename_old = paths.concat(opt.save,'Predictions.mat')
+    local filename_new
+    if str == 'flic' then
+        filename_new = paths.concat(bench_alg_path, 'pred_keypoints_flic_oc.mat')
+    else
+        filename_new = paths.concat(bench_alg_path, 'pred_keypoints_lsp_pc.mat')
+    end
+    os.execute(('cp %s %s'):format(filename_old, filename_new))
+
+    -- process benchmark
+    local command = ('cd %s && matlab -nodisplay -nodesktop -r "try, %s, catch, exit, end, exit"')
+                    :format(benchmark_folder, 'benchmark_' .. str)
+    os.execute(command)
+
+    -- copy plots folder to the experiment dir
+    os.execute(('cp -ar %s %s'):format(paths.concat(benchmark_folder, 'plots'), paths.concat(opt.save, 'plots')))
+elseif str == 'mpii' or str == 'mscoco' then
+    -- TODO
 else
     print('\nPredictions script complete.')
 end

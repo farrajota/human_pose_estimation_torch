@@ -1,32 +1,43 @@
 --[[
-    Train human pose predictor for FLIC and MPII datasets.
+    Script for training a human pose predictor network.
 --]]
 
 require 'torch'
 require 'paths'
+require 'torch'
 require 'string'
+
+local tnt = require 'torchnet'
 
 
 --------------------------------------------------------------------------------
 -- Load configs (data, model, criterion, optimState)
 --------------------------------------------------------------------------------
 
+print('==> (1/4) Load configurations: ')
 paths.dofile('configs.lua')
+
+-- load model + criterion
+print('==> (2/4) Load/create network: ')
+load_model('train')
+
+-- Compute the statistics of the images
+print('==> (3/4) Computing dataset statistics (mean/std): ')
+process_mean_std()
 
 -- set local vars
 local lopt = opt
-local dataset = g_dataset
-local nBatchesTrain = g_nBatchesTrain
-local nBatchesTest = g_nBatchesTest
-
--- load torchnet package
-local tnt = require 'torchnet'
+--local dataset = select_dataset_loader(opt.dataset, 'train')
+local nBatchesTrain = opt.trainIters
+local nBatchesTest = opt.trainIters
 
 -- convert modules to a specified tensor type
 local function cast(x) return x:type(opt.dataType) end
 
+print('==> (4/4) Train the network on the dataset: ' .. opt.dataset)
+
 print('\n**********************')
-print('Optimizer: '..opt.optMethod)
+print('Optimizer: ' .. opt.optMethod)
 print('**********************\n')
 
 
@@ -37,7 +48,7 @@ print('**********************\n')
 local function getIterator(mode)
     return tnt.ParallelDatasetIterator{
         nthread = opt.nThreads,
-        init    = function(threadid) 
+        init    = function(threadid)
                     require 'torch'
                     require 'torchnet'
                     opt = lopt
@@ -45,18 +56,19 @@ local function getIterator(mode)
                     torch.manualSeed(threadid+opt.manualSeed)
                   end,
         closure = function()
-          
-            -- setup data
-            local data = dataset[mode]
-          
+
+            -- setup data loader
+            local data_loader = select_dataset_loader(opt.dataset, mode)
+            local loader = data_loader[mode]
+
             -- number of iterations
-            local nIters = (mode == 'train' and nBatchesTrain) or (mode == 'val' and nBatchesTest)
-          
+            local nIters = opt.trainIters
+
             -- setup dataset iterator
             return tnt.ListDataset{
                 list = torch.range(1, nIters):long(),
                 load = function(idx)
-                    local input, label = getSampleBatch(data, mode)
+                    local input, label = getSampleBatch(loader, opt.batchSize)
                     return {
                         input = input,
                         target = label
@@ -75,28 +87,28 @@ end
 local meters = {
     train_err = tnt.AverageValueMeter(),
     train_accu = tnt.AverageValueMeter(),
-    valid_err = tnt.AverageValueMeter(),
-    valid_accu = tnt.AverageValueMeter(),
+    test_err = tnt.AverageValueMeter(),
+    test_accu = tnt.AverageValueMeter(),
 }
 
 function meters:reset()
     self.train_err:reset()
     self.train_accu:reset()
-    self.valid_err:reset()
-    self.valid_accu:reset()
+    self.test_err:reset()
+    self.test_accu:reset()
 end
 
 local loggers = {
-    valid = Logger(paths.concat(opt.save,'valid.log'), opt.continue),
+    test = Logger(paths.concat(opt.save,'test.log'), opt.continue),
     train = Logger(paths.concat(opt.save,'train.log'), opt.continue),
     full_train = Logger(paths.concat(opt.save,'full_train.log'), opt.continue),
 }
 
-loggers.valid:setNames{'Valid Loss', 'Valid acc.'}
+loggers.test:setNames{'Test Loss', 'Test acc.'}
 loggers.train:setNames{'Train Loss', 'Train acc.'}
 loggers.full_train:setNames{'Train Loss', 'Train accuracy'}
 
-loggers.valid.showPlot = false
+loggers.test.showPlot = false
 loggers.train.showPlot = false
 loggers.full_train.showPlot = false
 
@@ -107,7 +119,7 @@ local engine = tnt.OptimEngine()
 engine.hooks.onStart = function(state)
     if state.training then
         state.config = optimStateFn(state.epoch+1)
-        if opt.epochNumber>1 then 
+        if opt.epochNumber>1 then
             state.epoch = math.max(opt.epochNumber, state.epoch)
         end
     end
@@ -125,21 +137,21 @@ end
 engine.hooks.onForwardCriterion = function(state)
     if state.training then
         xlua.progress((state.t+1), nBatchesTrain)
-        
+
         -- compute the PCK accuracy of the networks (last) output heatmap with the ground-truth heatmap
         local acc = accuracy(state.network.output, state.sample.target)
-        
+
         meters.train_err:add(state.criterion.output)
         meters.train_accu:add(acc)
         loggers.full_train:add{state.criterion.output, acc}
     else
         xlua.progress(state.t, nBatchesTest)
-        
+
         -- compute the PCK accuracy of the networks (last) output heatmap with the ground-truth heatmap
         local acc = accuracy(state.network.output, state.sample.target)
-        
-        meters.valid_err:add(state.criterion.output)
-        meters.valid_accu:add(acc)
+
+        meters.test_err:add(state.criterion.output)
+        meters.test_accu:add(acc)
     end
 end
 
@@ -151,7 +163,7 @@ engine.hooks.onSample = function(state)
     cutorch.synchronize(); collectgarbage();
     inputs:resize(state.sample.input[1]:size() ):copy(state.sample.input[1])
     targets:resize(state.sample.target[1]:size() ):copy(state.sample.target[1])
-    
+
     state.sample.input  = inputs
     state.sample.target = utils.ReplicateTensor2Table(targets, opt.nOutputs)
 end
@@ -209,10 +221,11 @@ engine:train{
 --------------------------------------------------------------------------------
 -- Save model
 --------------------------------------------------------------------------------
-print('==> Saving final model to disk: ' .. paths.concat(opt.save,'final_model.t7'))
-utils.saveDataParallel(paths.concat(opt.save,'final_model.t7'), model.modules[1]:clearState())
-torch.save(paths.concat(opt.save,'final_optimState.t7'), optimStateFn(nEpochs))
-loggers.valid:style{'+-', '+-'}; loggers.valid:plot()
+
+--print('==> Saving final model to disk: ' .. paths.concat(opt.save,'final_model.t7'))
+--utils.saveDataParallel(paths.concat(opt.save,'final_model.t7'), model.modules[1]:clearState())
+--torch.save(paths.concat(opt.save,'final_optimState.t7'), optimStateFn(nEpochs))
+loggers.test:style{'+-', '+-'}; loggers.test:plot()
 loggers.train:style{'+-', '+-'}; loggers.train:plot()
 loggers.full_train:style{'-', '-'}; loggers.full_train:plot()
 

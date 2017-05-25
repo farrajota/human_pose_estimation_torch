@@ -19,13 +19,14 @@ require 'cutorch'
 require 'cunn'
 require 'cudnn'
 
-paths.dofile('projectdir.lua') -- Project directory
-paths.dofile('util/img.lua')
-paths.dofile('util/eval.lua')
-paths.dofile('util/draw.lua')
-paths.dofile('util/utils.lua') -- for loading the networks
-
 torch.setdefaulttensortype('torch.FloatTensor')
+
+paths.dofile('projectdir.lua') -- Project directory
+paths.dofile('img.lua')
+paths.dofile('eval.lua')
+paths.dofile('draw.lua')
+paths.dofile('init.lua') -- for loading the networks
+
 
 
 --------------------------------------------------------------------------------
