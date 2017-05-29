@@ -1,2 +1,2 @@
 -- Project directory
-projectDir = '/home/mf/Toolkits/Codigo/git/pose-torchnet'
+projectDir = os.getenv('HOME') .. '/human_pose_estimation_torch'
