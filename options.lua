@@ -1,5 +1,5 @@
 --[[
-    Options configurations for the train script.
+    Options configurations for the train/test/benchmark scripts.
 ]]
 
 local function Parse(arg)

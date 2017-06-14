@@ -1,5 +1,5 @@
 --[[
-    Loads necessary libraries and files for the train script.
+    Loads necessary libraries and files.
 ]]
 
 
