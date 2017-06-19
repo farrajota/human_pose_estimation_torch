@@ -1,8 +1,22 @@
 --[[
-    List of available models for Flic/MPII.
+    List of available models to load.
 ]]
 
 local model_list = {}
+
+
+--------------------------------------------------------------------------------
+-- Main networks
+--------------------------------------------------------------------------------
+
+model_list['hg-generic-best'] = paths.dofile('hg-generic-best.lua')  -- best combo of all models
+model_list['hg-generic-ensemble'] = paths.dofile('hg-generic-ensemble.lua')  -- Ensemble net
+model_list['sml'] = paths.dofile('SML.lua')  -- SML net
+
+
+--------------------------------------------------------------------------------
+-- Experimental networks
+--------------------------------------------------------------------------------
 
 -- stacked
 model_list['hg-stacked']        = paths.dofile('hg-stacked.lua')
@@ -10,11 +24,9 @@ model_list['hg-stackedV2']      = paths.dofile('hg-stackedV2.lua')
 model_list['hg-stacked-wide']   = paths.dofile('hg-stacked-wide.lua')
 model_list['hg-stacked-no-int'] = paths.dofile('hg-stacked-no-int.lua')
 -- generic
-model_list['hg-generic'] = paths.dofile('hg-generic.lua')
+model_list['hg-generic']   = paths.dofile('hg-generic.lua')
 model_list['hg-genericv2'] = paths.dofile('hg-genericv2.lua')
 model_list['hg-genericv3'] = paths.dofile('hg-genericv3.lua')
--- best combo of all models
-model_list['hg-generic-best'] = paths.dofile('hg-generic-best.lua')
 -- RRelu
 model_list['hg-generic-rrelu'] = paths.dofile('hg-generic-rrelu.lua')
 -- modified generic
@@ -25,7 +37,7 @@ model_list['hg-generic-inception']  = paths.dofile('hg-generic-inception.lua')
 model_list['hg-generic-wide']       = paths.dofile('hg-generic-wide.lua')
 model_list['hg-generic-widev2']     = paths.dofile('hg-generic-widev2.lua')
 model_list['hg-generic-widev3']     = paths.dofile('hg-generic-widev3.lua')
-model_list['hg-generic-widefeats']     = paths.dofile('hg-generic-widefeats.lua')
+model_list['hg-generic-widefeats']  = paths.dofile('hg-generic-widefeats.lua')
 model_list['hg-generic-highres']    = paths.dofile('hg-generic-highres.lua')
 -- rnn generic
 model_list['hg-generic-rnn']            = paths.dofile('hg-generic-rnn.lua')
@@ -43,7 +55,7 @@ model_list['hg-generic-bypassdense']  = paths.dofile('hg-generic-bypassdense.lua
 model_list['hg-generic-concatdense']  = paths.dofile('hg-generic-concatdense.lua')
 
 -- Ensemble nets
-model_list['hg-generic-ensemble']  = paths.dofile('hg-generic-ensemble.lua')
+model_list['hg-generic-ensemble']    = paths.dofile('hg-generic-ensemble.lua')
 model_list['hg-generic-ensemblev1']  = paths.dofile('hg-generic-ensemblev1.lua')
 model_list['hg-generic-ensemblev2']  = paths.dofile('hg-generic-ensemblev2.lua')
 model_list['hg-generic-ensemblev3']  = paths.dofile('hg-generic-ensemblev3.lua')
