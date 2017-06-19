@@ -25,7 +25,7 @@ dataset = loadDataset() -- load dataset train+val+test set
 
 idx = 3500
 mode = 'train'
-local img, keypoints, c, s, nJoints = loadImgKeypointsFn_(dataset[mode], idx)  
+local img, keypoints, c, s, nJoints = loadImgKeypointsFn_(dataset[mode], idx)
 
 s_factor = torch.uniform(1-opt.scale,1+opt.scale)
 --s_factor =0.75
@@ -79,14 +79,14 @@ else
     local x1_,y1_ = offset_left-(c_[1]-x1)+1, offset_top-(c_[2]-y1)+1
     local x2_,y2_ = x1_+(x2-x1), y1_+(y2-y1)
     out[{{},{y1_,y2_},{x1_,x2_}}]:copy(img_scaled[{{},{y1,y2},{x1,x2}}])
-    
-    -- apply rotation 
+
+    -- apply rotation
     out_rot = image.rotate(out, rot * math.pi / 180, 'bilinear')
-    
+
     disp.image(out_rot)
-    
+
     out_crop = image.crop(out_rot,'c',opt.inputRes,opt.inputRes)
-    
+
     disp.image(out_crop)
 end
 
@@ -156,7 +156,7 @@ function getTransformV2(center, scale, rot, res)
         t = t_inv * r * t_ * t
     end
     --]]
-    
+
     -- Rotation
     if rot ~= 0 then
         rot = -rot
@@ -237,7 +237,7 @@ end
 function mytransform(pt, center, scale, rot, res, invert)
     local pt_ = torch.ones(3)
     pt_[1],pt_[2] = pt[1],pt[2]
-    
+
     local h = 200 * scale
     local t = torch.eye(3)
 
@@ -248,7 +248,7 @@ function mytransform(pt, center, scale, rot, res, invert)
     -- Translation
     t[1][3] = res * (-center[1] / h + .5)
     t[2][3] = res * (-center[2] / h + .5)
-    
+
     -- rotation matrix
     if rot ~= 0 then
         local rotation = -rot
@@ -272,23 +272,23 @@ function mytransform(pt, center, scale, rot, res, invert)
         t = t_inv * r * t_ * t
         --]]
     end
-    
+
     -- comb transforms
     local c_matrix = t
     if invert then
         c_matrix = torch.inverse(c_matrix)
     end
-    
+
     -- process transformation
     local new_point = (c_matrix*pt_):sub(1,2)
-    
+
     return new_point
 end
 
 function mytransformV2(pt, center, scale, rot, res, invert)
     local pt_ = torch.ones(3)
     pt_[1],pt_[2] = pt[1]-1,pt[2]-1
-    
+
     local h = 200 * scale
     local t_matrix = torch.eye(3)
 
@@ -299,30 +299,30 @@ function mytransformV2(pt, center, scale, rot, res, invert)
     -- Translation
     t_matrix[1][3] = res * (-center[1] / h + .5)
     t_matrix[2][3] = res * (-center[2] / h + .5)
-    
+
     -- comb transforms
     local c_matrix = t_matrix
     if invert then
         c_matrix = torch.inverse(c_matrix)
     end
-    
+
     -- process transformation
     local new_point = (c_matrix*pt_):sub(1,2)
-    
+
     return new_point:add(1)
 end
 
 function mytransformV3(pt, center, scale, rot, res, invert)
     local pt_ = torch.ones(3)
     pt_[1],pt_[2] = pt[1],pt[2]
-    
+
     local h = 200 * scale
     local t_matrix = torch.eye(3)
-    
+
     -- Translation
     t_matrix[1][3] = (-center[1] )
     t_matrix[2][3] = (-center[2] )
-    
+
     -- rotation matrix
     local r_matrix = torch.eye(3)
     if rot ~= 0 then
@@ -342,34 +342,34 @@ function mytransformV3(pt, center, scale, rot, res, invert)
  --       local t_inv = torch.eye(3)
  --       t_inv[1][3] = res/4
  --       t_inv[2][3] = res/4
- --       r_matrix = r_matrix * t_ 
+ --       r_matrix = r_matrix * t_
     end
-    
+
     -- comb transforms
     local c_matrix = t_matrix*r_matrix*torch.inverse(t_matrix)
     if invert then
         c_matrix = torch.inverse(c_matrix)
     end
-    
+
     -- process transformation
     local new_point = (c_matrix*pt_):sub(1,2)
-    
+
     return new_point:add(1)
 end
 
 function mytransformV4(pt, center, scale, rot, res, invert)
     local pt_ = torch.ones(3)
     pt_[1],pt_[2] = pt[1],pt[2]
-    
+
     -- comb transforms
     local c_matrix = getTransformV4(center, scale, rot, res)
     if invert then
         c_matrix = torch.inverse(c_matrix)
     end
-    
+
     -- process transformation
     local new_point = (c_matrix*pt_):sub(1,2)
-    
+
     return new_point:add(1)
 end
 
@@ -378,12 +378,12 @@ end
 new_kps = torch.FloatTensor(14,2):fill(0)
 for i=1, new_kps:size(1) do
     if keypoints[i][1]>0 and keypoints[i][2]>0 then
-        new_kps[i] = mytransform(keypoints[i], c, s, rot, opt.inputRes, false) 
-        --new_kps[i] = mytransformV4(keypoints[i], c, s, rot, opt.inputRes, false) 
-        
-        --new_kps[i] = mytransformV3(new_kps[i], torch.FloatTensor(2):fill(128), 0, rot, opt.inputRes, false) 
+        new_kps[i] = mytransform(keypoints[i], c, s, rot, opt.inputRes, false)
+        --new_kps[i] = mytransformV4(keypoints[i], c, s, rot, opt.inputRes, false)
+
+        --new_kps[i] = mytransformV3(new_kps[i], torch.FloatTensor(2):fill(128), 0, rot, opt.inputRes, false)
         aqui=1
-        --new_kps[i] = transformV2(new_kps[i], torch.FloatTensor(2):fill(127), 1, rot, opt.inputRes, false) 
+        --new_kps[i] = transformV2(new_kps[i], torch.FloatTensor(2):fill(127), 1, rot, opt.inputRes, false)
     end
 end
 
@@ -402,12 +402,12 @@ unrotateImg = image.rotate(unrotateImg, -rot * math.pi / 180, 'bilinear')
 unrot_kps = torch.FloatTensor(14,2):fill(0)
 for i=1, unrot_kps:size(1) do
     if keypoints[i][1]>0 and keypoints[i][2]>0 then
-        unrot_kps[i] = mytransform(new_kps[i], c, s, rot, opt.inputRes, true) 
-        --new_kps[i] = mytransformV4(keypoints[i], c, s, rot, opt.inputRes, false) 
-        
-        --new_kps[i] = mytransformV3(new_kps[i], torch.FloatTensor(2):fill(128), 0, rot, opt.inputRes, false) 
+        unrot_kps[i] = mytransform(new_kps[i], c, s, rot, opt.inputRes, true)
+        --new_kps[i] = mytransformV4(keypoints[i], c, s, rot, opt.inputRes, false)
+
+        --new_kps[i] = mytransformV3(new_kps[i], torch.FloatTensor(2):fill(128), 0, rot, opt.inputRes, false)
         aqui=1
-        --new_kps[i] = transformV2(new_kps[i], torch.FloatTensor(2):fill(127), 1, rot, opt.inputRes, false) 
+        --new_kps[i] = transformV2(new_kps[i], torch.FloatTensor(2):fill(127), 1, rot, opt.inputRes, false)
     end
 end
 
