@@ -14,9 +14,9 @@ This code provides an easy way to train a network on a variety of datasets, all 
 > Note**: Only the FLIC and LSP datasets are evaluated/benchmarked here. The MPII and COCO datasets have dedicated servers for this purpose on their websites.
 
 
-## Results
+##  Network architecture
 
-The network model provided in the code is an enhanced version of [Newell's](https://github.com/anewell/pose-hg-train) method described in [his paper](http://arxiv.org/abs/1603.06937) with several modifications:
+The network model used here for human body joint estimation is an enhanced version of [Newell's](https://github.com/anewell/pose-hg-train) method described in [his paper](http://arxiv.org/abs/1603.06937) with several modifications:
 
 - replaced ReLUs with [RReLUs](https://github.com/torch/nn/blob/master/doc/transfer.md#rrelu)
 - use of [spatialdropout](https://github.com/torch/nn/blob/master/doc/simple.md#spatialdropout) between convolutions
@@ -25,6 +25,9 @@ The network model provided in the code is an enhanced version of [Newell's](http
 - replaced rmsprop optimization with [adam](https://arxiv.org/abs/1412.6980)
 - additional tweaks to the basic auto-encoder network (**TODO: add representative figure.**)
 
+
+
+## Results
 
 ### FLIC dataset results
 
