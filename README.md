@@ -8,10 +8,10 @@ This code provides an easy way to train a network on a variety of datasets, all 
 | --- | --- | --- | --- |
 | [Frames Labeled In Cinema (FLIC)](http://bensapp.github.io/flic-dataset.html) | Yes | Yes | Yes |
 | [Leeds Sports Pose (LSP)](http://www.comp.leeds.ac.uk/mat4saj/lspet.html) | Yes | Yes | Yes |
-| [MPII](http://human-pose.mpi-inf.mpg.de/) | Yes | Yes | **No** |
-| [MSCOCO](http://mscoco.org/) | Yes | Yes | **No** |
+| [MPII](http://human-pose.mpi-inf.mpg.de/) | Yes | Yes | **No**** |
+| [MSCOCO](http://mscoco.org/) | Yes | Yes | **No**** |
 
-> Note: Only FLIC and LSP can be benchmarked in this repo. MPII and MSCOCO datasets have dedicated servers for this purpose.
+> Note**: Only the FLIC and LSP datasets are evaluated/benchmarked here. Regarding the MPII and COCO datasets, these have dedicated servers for this purpose on their websites.
 
 
 ## Results
