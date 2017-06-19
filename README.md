@@ -30,14 +30,14 @@ The network model provided in the code is an enhanced version of [Newell's](http
 
 #### PCK(0.2) - Observer Centric
 
-| Method | Elbow | Wrist |
-| --- | --- | --- |
-| Sapp et al., CVPR'13  | 72.5 | 54.5 |
-| Yang et al., CVPR'16  | 91.6 | 88.8 |
-| Chen et al., NIPS'14  | 89.8 | 86.8 |
-| Wei et al., CVPR'16  | 92.5 | 90.0 |
-| Newell et al., arXiv'16  | 98.0 | 95.5 |
-| *Ours*  | **98.3** | **96.0** |
+| Method | Elbow | Wrist | Total |
+| --- | --- | --- | --- |
+| Sapp et al., CVPR'13  | 72.5 | 54.5 | 63.5 |
+| Chen et al., NIPS'14  | 89.8 | 86.8 | 88.3 |
+| Yang et al., CVPR'16  | 91.6 | 88.8 | 90.2 |
+| Wei et al., CVPR'16  | 92.5 | 90.0 | 91.3 |
+| Newell et al., arXiv'16  | 98.0 | 95.5 | 96.8 |
+| *Ours*  | **98.3** | **96.0** | **97.2** |
 
 
 ### LSP dataset
