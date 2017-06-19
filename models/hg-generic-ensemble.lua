@@ -16,7 +16,7 @@ end
 local function createModel()
 
     if not nn.NoBackprop then
-        paths.dofile('../modules/NoBackprop.lua')
+        paths.dofile('modules/NoBackprop.lua')
     end
 
     print('Load model: ' .. paths.concat(opt.ensemble,'final_model.t7'))

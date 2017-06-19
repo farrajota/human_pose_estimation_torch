@@ -51,12 +51,13 @@ local function makeDataParallelTable(model, nGPU)
       local gpus = torch.range(1, nGPU):totable()
       local fastest, benchmark = cudnn.fastest, cudnn.benchmark
 
-      --local dpt = nn.DataParallelTable(1, true, true)
+      --local dpt = nn.DataParallelTable(1, true, true)  -- causing some issues on my system
       local dpt = nn.DataParallelTable(1)
          :add(model, gpus)
          :threads(function()
+            require 'nn'
             require 'nngraph'
-            paths.dofile('../modules/NoBackprop.lua')
+            paths.dofile('../models/modules/NoBackprop.lua')
             if pcall(require,'cudnn') then
                local cudnn = require 'cudnn'
                cudnn.fastest, cudnn.benchmark = fastest, benchmark

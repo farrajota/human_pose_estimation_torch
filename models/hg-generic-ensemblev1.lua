@@ -8,7 +8,9 @@ end
 
 local function createModel()
 
-    paths.dofile('../modules/NoBackprop.lua')
+    if not nn.NoBackprop then
+        paths.dofile('modules/NoBackprop.lua')
+    end
 
     local trained_model = torch.load('/home/mf/Toolkits/Codigo/git/pose-torchnet/exp/flic/hg-generic8/final_model.t7')
     trained_model:evaluate()
