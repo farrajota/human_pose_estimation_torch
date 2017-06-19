@@ -1,6 +1,6 @@
 # Human Body Joints estimation for torch7
 
-Train and test a human body joints estimator network using Lua/Torch7 for single humans on an image.
+Train and test a human body joints estimator network using Lua/Torch7 for single humans on a single image. This method is a modified version of the original [hourglass networks](https://github.com/anewell/pose-hg-train).
 
 This code provides an easy way to train a network on a variety of datasets, all available through the `dbcollection` package. The available datasets for train/test/benchmark are the following:
 
@@ -11,19 +11,19 @@ This code provides an easy way to train a network on a variety of datasets, all 
 | [MPII](http://human-pose.mpi-inf.mpg.de/) | Yes | Yes | **No**** |
 | [MSCOCO](http://mscoco.org/) | Yes | Yes | **No**** |
 
-> Note**: Only the FLIC and LSP datasets are evaluated/benchmarked here. Regarding the MPII and COCO datasets, these have dedicated servers for this purpose on their websites.
+> Note**: Only the FLIC and LSP datasets are evaluated/benchmarked here. The MPII and COCO datasets have dedicated servers for this purpose on their websites.
 
 
 ## Results
 
 The network model provided in the code is an enhanced version of [Newell's](https://github.com/anewell/pose-hg-train) method described in [his paper](http://arxiv.org/abs/1603.06937) with several modifications:
 
-- use of [RReLUs](https://github.com/torch/nn/blob/master/doc/transfer.md#rrelu)
-- [spatialdropout](https://github.com/torch/nn/blob/master/doc/simple.md#spatialdropout)
-- a bit more data augmentation (rotation, scale, colour jittering)
-- wider feature maps as the resolution decreases
-- [adam](https://arxiv.org/abs/1412.6980) optimization
-- some tweaks to the basic auto-encoder network
+- replaced ReLUs with [RReLUs](https://github.com/torch/nn/blob/master/doc/transfer.md#rrelu)
+- use of [spatialdropout](https://github.com/torch/nn/blob/master/doc/simple.md#spatialdropout) between convolutions
+- more data augmentation (more rotation, scaling, colour jittering)
+- use of wider feature maps (more kernels) as the image resolution decreases
+- replaced rmsprop optimization with [adam](https://arxiv.org/abs/1412.6980)
+- additional tweaks to the basic auto-encoder network (**TODO:** see figure)
 
 
 ### FLIC dataset results
@@ -72,8 +72,9 @@ The network model provided in the code is an enhanced version of [Newell's](http
 To run the code in this repository you'll need the following resources:
 
 - [Torch7](http://torch.ch/docs/getting-started.html)
-- [dbcollection](https://github.com/farrajota/dbcollection)
-- Matlab >= 2012a (for benchmark only)
+- Matlab >= 2012a (for running the benchmark code)
+- Python >= 2.7 or >= 3.5 (for using  [dbcollection](https://github.com/farrajota/dbcollection))
+
 
 Also, you'll need to install the following packages:
 
