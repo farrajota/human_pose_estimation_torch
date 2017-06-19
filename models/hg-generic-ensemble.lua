@@ -19,8 +19,8 @@ local function createModel()
         paths.dofile('modules/NoBackprop.lua')
     end
 
-    print('Load model: ' .. paths.concat(opt.ensemble,'final_model.t7'))
-    local trained_model = torch.load(paths.concat(opt.ensemble,'final_model.t7'))
+    print('Load model: ' .. paths.concat(opt.ensemble, 'final_model.t7'))
+    local trained_model = torch.load(paths.concat(opt.ensemble, 'final_model.t7'))
     trained_model:evaluate()
 
     -- craft network

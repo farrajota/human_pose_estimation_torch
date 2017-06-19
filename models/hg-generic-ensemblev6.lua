@@ -12,7 +12,8 @@ local function createModel()
         paths.dofile('modules/NoBackprop.lua')
     end
 
-    local trained_model = torch.load('/home/mf/Toolkits/Codigo/git/pose-torchnet/exp/flic/hg-generic16/final_model.t7')
+    print('Load model: ' .. paths.concat(opt.ensemble, 'final_model.t7'))
+    local trained_model = torch.load(paths.concat(opt.ensemble, 'final_model.t7'))
     trained_model:evaluate()
 
     -- craft network

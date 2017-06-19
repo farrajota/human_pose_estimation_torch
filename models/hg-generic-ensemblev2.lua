@@ -58,11 +58,11 @@ local function createModel()
 
         if i < opt.nStack then inter = nn.CAddTable()({inter, hg}) end
     end
-    
+
     local concat_outputs = nn.JoinTable(2)(out)
     local ll1 = lin2(outputDim[1][1]*opt.nStack , 512, concat_outputs)
     local ll2 = lin2(512, outputDim[1][1], ll1)
-    
+
     table.insert(out, ll2)
     opt.nOutputs = opt.nStack+1
 
