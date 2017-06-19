@@ -4,13 +4,10 @@
 
 
 require 'torch'
-require 'xlua'
-require 'optim'
-require 'nn'
-require 'nnx'
-require 'nngraph'
 require 'string'
 require 'image'
+require 'xlua'
+require 'optim'
 
 paths.dofile('util/img.lua')
 paths.dofile('util/eval.lua')
@@ -19,11 +16,10 @@ paths.dofile('util/store.lua')
 paths.dofile('util/draw.lua')
 paths.dofile('util/utils.lua')
 
---local ffi = require 'ffi'
---local t = paths.dofile('transforms.lua')
 
+------------------------------------------------------------------------------------------------------------
 
--- Function for data augmentation, randomly samples on a normal distribution
+--[[ Function for data augmentation, randomly samples on a normal distribution. ]]
 local function rnd(x)
     return math.max(-2*x, math.min(2*x, torch.randn(1)[1]*x))
 end
