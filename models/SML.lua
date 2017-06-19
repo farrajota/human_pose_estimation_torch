@@ -1,4 +1,27 @@
+--[[
+    This network is coined SML (Small-Medium-Large). It is a variation of the stacked hourglass
+    with our modified version. It should run faster than the modified hg due to having less convolutions
+    and less stacks, concentrating the bulk of the processing needs on 1/2 networks instead of spreading
+    it through 8+ stacks of networks.
+
+    This network is designed/composed by three stacked auto-encoders:
+    - (S) an auto-encoder with fewer parameters;
+      (Note: This gives as an initial/rough estimation of the body parts regions.)
+
+    - (M) has more layers+parameters than the (S) network;
+      (Note: This improves the intial estimation and feeds a better map to the next and final layer)
+
+    - (L) has the most layers+parameters+lowest resolution of all networks. Also, it produces the final output.
+      (Note: This final layer contains more parameters than the two previous networks combined.
+      The resulting output map should be the most accurate map of them all.)
+
+
+    TODO: complete the code for this network.
+]]
+
+
 paths.dofile('layers/Residual.lua')
+
 
 local function hourglass(n, f, inp)
     -- Upper branch
@@ -19,20 +42,30 @@ local function hourglass(n, f, inp)
     return nn.CAddTable()({up1,up2})
 end
 
+------------------------------------------------------------------------------------------------------------
+
 local function ae_small(n, f, input)
 end
+
+------------------------------------------------------------------------------------------------------------
 
 local function ae_medium(n, f, input)
 end
 
+------------------------------------------------------------------------------------------------------------
+
 local function ae_large(n, f, input)
 end
+
+------------------------------------------------------------------------------------------------------------
 
 local function lin(numIn,numOut,inp)
     -- Apply 1x1 convolution, stride 1, no padding
     local l = nn.SpatialConvolution(numIn,numOut,1,1,1,1,0,0)(inp)
     return nn.ReLU(true)(nn.SpatialBatchNormalization(numOut)(l))
 end
+
+------------------------------------------------------------------------------------------------------------
 
 local function createModel()
 
@@ -54,7 +87,7 @@ local function createModel()
 
     -- add first AE (Small - 1st rough estimate)
     local hg1 = ae_small(4,256,256)
-    
+
     -- Linear layers to produce first set of predictions
     local l1 = lin(512,512,hg1)
     local l2 = lin(512,256,l1)
@@ -67,7 +100,7 @@ local function createModel()
     local cat1 = nn.JoinTable(2)({l2,pool})
     local cat1_ = nn.SpatialConvolution(256+128,256+128,1,1,1,1,0,0)(cat1)
     local int1 = nn.CAddTable()({cat1_,out1_})
-    
+
     -- add second AE (Medium - better refinement)
     local hg2 = ae_medium(5,256,256+128)
     -- add third AE (Large - best accuracy)
@@ -95,6 +128,6 @@ local function createModel()
     return model
 end
 
--------------------------
+------------------------------------------------------------------------------------------------------------
 
 return createModel
