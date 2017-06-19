@@ -1,6 +1,6 @@
 # Human Body Joints estimation for torch7
 
-Train and test a human body joints estimator network using Lua/Torch7 for single humans on a single image. This method is a modified version of the original [hourglass networks](https://github.com/anewell/pose-hg-train).
+Train and test a human body joints estimator network using Lua/Torch7 for single humans on a single image. This method is a modified version of the original [hourglass networks](https://github.com/anewell/pose-hg-train). For more information see our paper (**TODO: insert link to the paper.**)
 
 This code provides an easy way to train a network on a variety of datasets, all available through the `dbcollection` package. The available datasets for train/test/benchmark are the following:
 
@@ -23,7 +23,7 @@ The network model provided in the code is an enhanced version of [Newell's](http
 - more data augmentation (more rotation, scaling, colour jittering)
 - use of wider feature maps (more kernels) as the image resolution decreases
 - replaced rmsprop optimization with [adam](https://arxiv.org/abs/1412.6980)
-- additional tweaks to the basic auto-encoder network (**TODO:** see figure)
+- additional tweaks to the basic auto-encoder network (**TODO: add representative figure.**)
 
 
 ### FLIC dataset results
