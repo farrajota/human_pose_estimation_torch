@@ -3,6 +3,14 @@
 ]]
 
 
+local function exec_command(command)
+    print('')
+    print('Executing command: ' .. command)
+    print('')
+    os.execute(command)
+end
+
+
 --------------------------------------------------------------------------------
 -- Train + benchmark network
 --------------------------------------------------------------------------------
@@ -53,14 +61,11 @@ do
         str_cuda = 'CUDA_VISIBLE_DEVICES=1,0'
     end
 
-    -- display options
-    print('Input options: ' .. str_args)
-
     -- train network
-    os.execute(('%s th train.lua %s'):format(str_cuda, str_args))
+    exec_command(('%s th train.lua %s'):format(str_cuda, str_args))
 
     -- benchmark network
-    os.execute('CUDA_VISIBLE_DEVICES=1 th benchmark.lua ' .. str_args)
+    exec_command('CUDA_VISIBLE_DEVICES=1 th benchmark.lua ' .. str_args)
 end
 
 
@@ -114,12 +119,9 @@ do
         str_cuda = 'CUDA_VISIBLE_DEVICES=1,0'
     end
 
-    -- display options
-    print('Input options: ' .. str_args)
-
     -- train network
-    os.execute(('%s th train.lua %s'):format(str_cuda, str_args))
+    exec_command(('%s th train.lua %s'):format(str_cuda, str_args))
 
     -- benchmark network
-    os.execute('CUDA_VISIBLE_DEVICES=1 th benchmark.lua ' .. str_args)
+    exec_command('CUDA_VISIBLE_DEVICES=1 th benchmark.lua ' .. str_args)
 end
