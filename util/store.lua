@@ -1,6 +1,7 @@
 --[[
-    Logger functions for easier logging data management.
+    Model storing functions to disk.
 ]]
+
 
 if not utils then utils = paths.dofile('utils.lua') end
 
