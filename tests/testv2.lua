@@ -11,8 +11,9 @@ cmd:option('-n',  0, '0- even | 1- odd')
 cmd:text()
 local opt = cmd:parse(arg or {})
 
+
 --------------------------------------------------------------------------------
--- Initializations
+-- Configurations
 --------------------------------------------------------------------------------
 
 local nThreads = 2
@@ -23,7 +24,7 @@ local snapshot = 0
 local schedule = "{{30,2.5e-4,0},{5,1e-4,0},{5,5e-5,0}}"
 
 local scripts = {
-  
+
 --1 criterion weights
 --1.1 - linear distribution
 {expID = 'hg-generic'..nstacks..'-critweights-lin', netType = 'hg-generic', colourNorm='false', colourjit='false', centerjit=0, pca='false', dropout=0, spatialdropout=0, critweights='lin', inputRes=256},
@@ -65,20 +66,29 @@ local scripts = {
 {expID = 'hg-generic'..nstacks..'-scale', netType = 'hg-generic', colourNorm='false', colourjit='false', centerjit=0, pca='false', dropout=0, spatialdropout=0, critweights='false', inputRes=256, scale=0.30},
 }
 
+
+--------------------------------------------------------------------------------
+-- Command setup
+--------------------------------------------------------------------------------
+
 local function TestArchScript(GPU, info)
     os.execute(('CUDA_VISIBLE_DEVICES=%d th train.lua -dataset flic -expID %s -netType %s'..
         ' -nGPU 1 -optMethod %s -nThreads %d -colourNorm %s -colourjit %s'..
         ' -centerjit %d -dropout %.2f -spatialdropout %.2f -critweights %s -snapshot %d -schedule %s'..
         ' -rotRate %0.2f -nStack %d -nFeats %d -scale %0.2f')
         :format(GPU, info.expID, info.netType,
-            optim_method, nThreads,info.colourNorm, 
-            info.colourjit, info.centerjit, 
+            optim_method, nThreads,info.colourNorm,
+            info.colourjit, info.centerjit,
             info.dropout, info.spatialdropout, info.critweights, snapshot, schedule,
             opt.rotRate or 0.6, opt.nStack or nstacks, opt.nFeats or 256, opt.scale or 0.25
             )
     )
 end
 
+
+--------------------------------------------------------------------------------
+-- Test all configurations (train+eval networks)
+--------------------------------------------------------------------------------
 
 for i=1+opt.n, #scripts, 2 do
     TestArchScript(opt.n,scripts[i])
