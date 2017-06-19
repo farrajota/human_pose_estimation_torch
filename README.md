@@ -14,7 +14,7 @@ This code provides an easy way to train a network on a variety of datasets, all 
 > Note: Only FLIC and LSP can be benchmarked in this repo. MPII and MSCOCO datasets have dedicated servers for this purpose.
 
 
-# Results
+## Results
 
 The network model provided in the code is an enhanced version of [Newell's](https://github.com/anewell/pose-hg-train) method described in [his paper](http://arxiv.org/abs/1603.06937) with several modifications:
 
@@ -26,7 +26,7 @@ The network model provided in the code is an enhanced version of [Newell's](http
 - some tweaks to the basic auto-encoder network
 
 
-## FLIC dataset results
+### FLIC dataset results
 
 #### PCK(0.2) - Observer Centric
 
@@ -40,7 +40,7 @@ The network model provided in the code is an enhanced version of [Newell's](http
 | *Ours*  | **98.3** | **96.0** |
 
 
-## LSP dataset
+### LSP dataset
 
 #### PCK(0.2) - Person Centric
 
@@ -65,9 +65,9 @@ The network model provided in the code is an enhanced version of [Newell's](http
 
 > Note: The network was trained with data from the MPII and LSPe datasets just like most of the methods on the benchmark.
 
-# Installation
+## Installation
 
-## Requirements
+### Requirements
 
 To run the code in this repository you'll need the following resources:
 
@@ -75,9 +75,7 @@ To run the code in this repository you'll need the following resources:
 - [dbcollection](https://github.com/farrajota/dbcollection)
 - Matlab >= 2012a (for benchmark only)
 
-### Torch7 packages
-
-To use this repo, you should install the following packages:
+Also, you'll need to install the following packages:
 
 ```lua
 luarocks install display
@@ -89,26 +87,27 @@ luarocks install torchnet
 ```
 
 
-### dbcollection package setup/installation
+### dbcollection
 
 To install the dbcollection package do the following:
 
-- download the git repository to disk.
-```
-git clone --recursive https://github.com/farrajota/dbcollection
-```
-
 - install the Python module.
 ```
-cd dbcollection/ && python setup.py install
+pip install dbcollection
 ```
 
--  install the Lua package.
+- download the git repository to disk.
+```
+git clone https://github.com/farrajota/dbcollection
+```
+
+- install the Lua package.
 ```
 cd APIs/lua && luarocks make
 ```
 
 > For more information about the dbcollection package see [here](https://github.com/farrajota/dbcollection).
+
 
 
 #### Data setup
@@ -118,7 +117,7 @@ cd APIs/lua && luarocks make
 For more information on how to setup a dataset see the [dbcollection](https://github.com/farrajota/dbcollection) repo.
 
 
-# Getting started
+## Getting started
 
 
 After installing the necessary requirements, it is advised to setup the necessary data before proceeding. Since the code uses `dbcollection` for managing datasets, downloading/setting up the data folders is best if you desire to specify the dataset's directory manually. Then, to start training a network simply do `th train.lua -expID <net_name>`. To use a specific dataset, for example FLIC, specify the `-dataset` input arg when running the script `th train.lua -expID <net_name> -dataset flic`.
@@ -126,7 +125,7 @@ After installing the necessary requirements, it is advised to setup the necessar
 
 Most of the command line options are pretty self-explanatory, and can be found in `options.lua`. The `-expID` option will be used to save important information in a directory like `pose-torchnet/exp/<dataset>/<expID>/`. This directory will include snapshots of the trained model, training/validations logs with loss and accuracy information, and other details of the options set for that particular experiment.
 
-## Download/Setting up this repo
+### Download/Setting up this repo
 
 To use this code, clone the repo into your home directory:
 
@@ -136,41 +135,41 @@ git clone --recursive https://github.com/farrajota/human_pose_estimation_torch
 
 If you clone the repo into a different directory, please make sure you modify `projectdir.lua` and point to the new path before using the code.
 
-## Training a model
+### Training a model
 
 To train a network you simply need to do `th train.lua`. This will train a network with the default parameters. To train a network with other options please see the `options.lua` file or look in `tests/` for some scripts that contain training procedures.
 
 
-## Testing a model
+### Testing a model
 
 When training a network, a small sample of the overall dataset is used to compute the current accuracy. To use the entire dataset to compute the total accuracy of a network, run `th test.lua -expID <name_exp> -dataset <name_exp>`. For the MPII dataset, the training set is split into two (train + val) and the evaluation is performed on the `val` set.
 
 
-## Benchmarking against other methods
+### Benchmarking against other methods
 
 To process the prediction of body joints on a dataset, run `th benchmark.lua  -expID <name_exp> -dataset <name_exp>`. This will process all predictions for all annotations of a dataset and store it to disk to two files (`Predictions.t7` + `Predictions.mat`) in the folder of the experiment provided in `-expID`.
 
 Furthermore, for the FLIC and LSP datasets, this repo provides a benchmarking procedure to compare the results a trained network with other methods for body joint prediction whose predictions are made available online. For the MPII and MSCOCO datasets, you will need to use their evaluation servers.
 
-## Additional information
+### Additional information
 
-### Accuracy metric
+#### Accuracy metric
 
 For convenience during training, the accuracy function evaluates PCK by comparing the output heatmap of the network to the ground truth heatmap. However, this should provide a good enough performance measure when training a network on any dataset.
 
 
-### Additional notes
+#### Additional notes
 
 Due to problems in cleaning grad buffers with `:clearState()` in order to store models to disk which would cause crashes due to insufficient memory when re-populating the buffers in the GPU memory, here the model's parameters on GPU are copied to a copy of the model which is stored on Ram. This means that, when the model needs to be loaded, a convertion between `nn` and `cudnn` is required for it to run properly.
 
 Besides this small catch the network should work after the conversion.
 
 
-# License
+## License
 
 MIT license (see the LICENSE file)
 
 
-# Acknowledgements
+## Acknowledgements
 
 This repo is based on [Newell's](https://github.com/anewell/pose-hg-train) code for training a human pose detector.
