@@ -28,7 +28,7 @@ process_mean_std()
 local lopt = opt
 --local dataset = select_dataset_loader(opt.dataset, 'train')
 local nBatchesTrain = opt.trainIters
-local nBatchesTest = opt.trainIters
+local nBatchesTest = opt.testIters
 
 -- convert modules to a specified tensor type
 local function cast(x) return x:type(opt.dataType) end
@@ -61,7 +61,7 @@ local function getIterator(mode)
             local loader = data_loader[mode]
 
             -- number of iterations
-            local nIters = opt.trainIters
+            local nIters = (mode=='train' and opt.trainIters) or opt.testIters
 
             -- setup dataset iterator
             return tnt.ListDataset{
@@ -133,6 +133,18 @@ engine.hooks.onStartEpoch = function(state)
 end
 
 
+-- copy sample to GPU buffer:
+local inputs, targets = cast(torch.Tensor()), cast(torch.Tensor())
+engine.hooks.onSample = function(state)
+    cutorch.synchronize(); collectgarbage();
+    inputs:resize(state.sample.input[1]:size() ):copy(state.sample.input[1])
+    targets:resize(state.sample.target[1]:size() ):copy(state.sample.target[1])
+
+    state.sample.input  = inputs
+    state.sample.target = utils.ReplicateTensor2Table(targets, opt.nOutputs)
+end
+
+
 engine.hooks.onForwardCriterion = function(state)
     if state.training then
         xlua.progress((state.t+1), nBatchesTrain)
@@ -152,19 +164,6 @@ engine.hooks.onForwardCriterion = function(state)
         meters.test_err:add(state.criterion.output)
         meters.test_accu:add(acc)
     end
-end
-
-
--- copy sample to GPU buffer:
-local inputs, targets = cast(torch.Tensor()), cast(torch.Tensor())
-
-engine.hooks.onSample = function(state)
-    cutorch.synchronize(); collectgarbage();
-    inputs:resize(state.sample.input[1]:size() ):copy(state.sample.input[1])
-    targets:resize(state.sample.target[1]:size() ):copy(state.sample.target[1])
-
-    state.sample.input  = inputs
-    state.sample.target = utils.ReplicateTensor2Table(targets, opt.nOutputs)
 end
 
 
@@ -204,7 +203,6 @@ engine.hooks.onEndEpoch = function(state)
     -- save the network to disk
     -----------------------------
 
-    --storeModel(state.network.modules[1], state.config, state.epoch, opt)
     storeModel(state.network.modules[1], state.config, state.epoch, opt)
 
     if ts_accuracy > test_best_accu and opt.saveBest then
@@ -232,12 +230,9 @@ engine:train{
 
 
 --------------------------------------------------------------------------------
--- Save model
+-- Plot log graphs
 --------------------------------------------------------------------------------
 
-print('==> Saving final model to disk: ' .. paths.concat(opt.save,'final_model.t7'))
-utils.saveDataParallel(paths.concat(opt.save,'final_model.t7'), model.modules[1]:clearState())
-torch.save(paths.concat(opt.save,'final_optimState.t7'), optimStateFn(nEpochs))
 loggers.test:style{'+-', '+-'}; loggers.test:plot()
 loggers.train:style{'+-', '+-'}; loggers.train:plot()
 loggers.full_train:style{'-', '-'}; loggers.full_train:plot()
