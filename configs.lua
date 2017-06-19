@@ -129,7 +129,7 @@ if not opt then
                     learningRateDecay = opt.LRdecay,
                     momentum = opt.momentum,
                     dampening = 0.0,
-                    weightDecay = opt.weightDecay
+                    weightDecay = opt.weightDecay,
                     beta1 = opt.beta1,  -- adam
                     beta2 = opt.beta2,  -- adam
                     alpha = opt.alpha,  -- rmsprop
