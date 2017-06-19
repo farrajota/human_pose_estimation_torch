@@ -108,6 +108,10 @@ if not opt then
                             momentum = opt.momentum,
                             dampening = 0.0,
                             weightDecay = v[4],
+                            beta1 = opt.beta1,  -- adam
+                            beta2 = opt.beta2,  -- adam
+                            alpha = opt.alpha,  -- rmsprop
+                            epsilon = opt.epsilon,  -- adam/rmsprop
                             end_schedule = (v[2]==epoch and 1) or 0
                         }
                     end
@@ -126,6 +130,10 @@ if not opt then
                     momentum = opt.momentum,
                     dampening = 0.0,
                     weightDecay = opt.weightDecay
+                    beta1 = opt.beta1,  -- adam
+                    beta2 = opt.beta2,  -- adam
+                    alpha = opt.alpha,  -- rmsprop
+                    epsilon = opt.epsilon,  -- adam/rmsprop
                 }
             end
         end
