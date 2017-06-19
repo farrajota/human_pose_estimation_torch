@@ -5,7 +5,7 @@
 
         Network name/id/type: best.
 
-        Train Ensemble: yes
+        Train Ensemble: yes.
 
         Dataset: FLIC.
 ]]
