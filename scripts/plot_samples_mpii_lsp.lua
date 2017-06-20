@@ -1,10 +1,10 @@
 --[[
-    Plot body joint heatmaps and skeletons of random images from the LSP dataset and save them do disk.
+    Plot body joint heatmaps and skeletons of random images from the LSP (+MPII) dataset and save them do disk.
 ]]
 
 
 configs = {
-    dataset = 'lsp',
+    dataset = 'mpii+lsp',
     expID = 'final-best',
     demo_nsamples = 5,
     demo_plot_save = 'true',
