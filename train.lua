@@ -185,19 +185,20 @@ engine.hooks.onEndEpoch = function(state)
     -- test the network
     ---------------------
 
-    print('\n**********************************************')
-    print(('Test network (epoch = %d/%d)'):format(state.epoch, state.maxepoch))
-    print('**********************************************')
-    engine:test{
-        network   = model,
-        iterator  = getIterator('test'),
-        criterion = criterion,
-    }
-    local ts_loss = meters.test_err:value()
-    local ts_accuracy = meters.test_accu:value()
-    loggers.test:add{ts_loss, ts_accuracy}
-    print(('Test Loss: %0.5f; Acc: %0.5f'):format(meters.test_err:value(),  meters.test_accu:value()))
-
+    if nBatchesTest > 0 then
+        print('\n**********************************************')
+        print(('Test network (epoch = %d/%d)'):format(state.epoch, state.maxepoch))
+        print('**********************************************')
+        engine:test{
+            network   = model,
+            iterator  = getIterator('test'),
+            criterion = criterion,
+        }
+        local ts_loss = meters.test_err:value()
+        local ts_accuracy = meters.test_accu:value()
+        loggers.test:add{ts_loss, ts_accuracy}
+        print(('Test Loss: %0.5f; Acc: %0.5f'):format(meters.test_err:value(),  meters.test_accu:value()))
+    end
 
     -----------------------------
     -- save the network to disk
@@ -205,9 +206,11 @@ engine.hooks.onEndEpoch = function(state)
 
     storeModel(state.network.modules[1], state.config, state.epoch, opt)
 
-    if ts_accuracy > test_best_accu and opt.saveBest then
-        storeModelBest(state.network.modules[1], opt)
-        test_best_accu = ts_accuracy
+    if nBatchesTest > 0 then
+        if ts_accuracy > test_best_accu and opt.saveBest then
+            storeModelBest(state.network.modules[1], opt)
+            test_best_accu = ts_accuracy
+        end
     end
 
     state.t = 0
