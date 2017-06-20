@@ -2,7 +2,7 @@
     Produce predictions for a dataset.
 
     The benchmark algorithm only works for the FLIC and LSP datasets.
-    The MPII and MSCOCO datasets have a dedicated online server for evaluation.
+    The MPII and COCO datasets have a dedicated online server for evaluation.
 --]]
 
 
@@ -184,8 +184,8 @@ if str == 'flic' or str == 'lsp'  then
 
     -- copy plots folder to the experiment dir
     os.execute(('cp -ar %s %s'):format(paths.concat(benchmark_folder, 'plots'), paths.concat(opt.save, 'plots')))
-elseif str == 'mpii' or str == 'mscoco' then
+elseif str == 'mpii' or str == 'coco' then
     -- TODO
 else
-    error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | mscoco'):format(name))
+    error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | coco'):format(name))
 end

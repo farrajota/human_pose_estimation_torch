@@ -1,7 +1,7 @@
 --[[
     Script for testing a human pose predictor.
 
-    Available/valid datasets: FLIC, MPII, Leeds Sports or MSCOCO.
+    Available/valid datasets: FLIC, MPII, Leeds Sports or COCO.
 --]]
 
 
@@ -197,10 +197,10 @@ engine.hooks.onEnd= function(state)
         print('-----------------------------------')
         table.insert(res, {displayPCK(dists, {7,12}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
         print('-----------------------------------')
-    elseif opt.dataset == 'mscoco' or opt.dataset == 'coco' then
+    elseif opt.dataset == 'coco' then
         -- TODO
     else
-        error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | mscoco'):format(name))
+        error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | coco'):format(name))
     end
 
     gnuplot.raw('unset multiplot')

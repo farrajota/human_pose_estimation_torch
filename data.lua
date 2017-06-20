@@ -40,10 +40,10 @@ local function get_db_loader(name)
         dbloader = dbc.load{name='leeds_sports_pose_extended', task='keypoints_d', data_dir=opt.data_dir}
     elseif str == 'mpii' then
         dbloader = dbc.load{name='mpii_pose', task='keypoints_d', data_dir=opt.data_dir}
-    elseif str == 'mscoco' then
-        dbloader = dbc.load{name='mscoco', task='keypoint_2016_d', data_dir=opt.data_dir}
+    elseif str == 'coco' then
+        dbloader = dbc.load{name='coco', task='keypoint_2016_d', data_dir=opt.data_dir}
     else
-        error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | mscoco'):format(name))
+        error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | coco'):format(name))
     end
     return dbloader
 end
@@ -182,10 +182,10 @@ end
 ------------------------------------------------------------------------------------------------------------
 
 local function loader_coco(set_name)
-    local dbloader = get_db_loader('mscoco')
+    local dbloader = get_db_loader('coco')
 
     if set_name == 'test' then
-        set_name = 'val' -- use mscoco val set for testing
+        set_name = 'val' -- use coco val set for testing
     end
 
     -- number of samples per train/test sets
@@ -262,12 +262,12 @@ local function fetch_loader_dataset(name, mode)
         return loader_lsp(mode)
     elseif str == 'mpii' then
         return loader_mpii(mode)
-    elseif str == 'mscoco' then
+    elseif str == 'coco' then
         return loader_coco(mode)
     elseif str == 'mpii+lsp' then
         return loader_mpii_lsp(mode)
     else
-        error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | mscoco | mpii+lsp.'):format(name))
+        error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | coco | mpii+lsp.'):format(name))
     end
 end
 

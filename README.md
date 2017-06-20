@@ -9,7 +9,7 @@ This code provides an easy way to train a network on a variety of datasets, all 
 | [Frames Labeled In Cinema (FLIC)](http://bensapp.github.io/flic-dataset.html) | Yes | Yes | Yes |
 | [Leeds Sports Pose (LSP)](http://www.comp.leeds.ac.uk/mat4saj/lspet.html) | Yes | Yes | Yes |
 | [MPII](http://human-pose.mpi-inf.mpg.de/) | Yes | Yes | **No**** |
-| [MSCOCO](http://mscoco.org/) | Yes | Yes | **No**** |
+| [COCO](http://mscoco.org/) | Yes | Yes | **No**** |
 
 > Note**: Only the FLIC and LSP datasets are evaluated/benchmarked here. The MPII and COCO datasets have dedicated servers for this purpose on their websites.
 
@@ -155,7 +155,7 @@ When training a network, a small sample of the overall dataset is used to comput
 
 To process the prediction of body joints on a dataset, run `th benchmark.lua  -expID <name_exp> -dataset <name_exp>`. This will process all predictions for all annotations of a dataset and store it to disk to two files (`Predictions.t7` + `Predictions.mat`) in the folder of the experiment provided in `-expID`.
 
-Furthermore, for the FLIC and LSP datasets, this repo provides a benchmarking procedure to compare the results a trained network with other methods for body joint prediction whose predictions are made available online. For the MPII and MSCOCO datasets, you will need to use their evaluation servers.
+Furthermore, for the FLIC and LSP datasets, this repo provides a benchmarking procedure to compare the results a trained network with other methods for body joint prediction whose predictions are made available online. For the MPII and COCO datasets, you will need to use their evaluation servers.
 
 ### Additional information
 
