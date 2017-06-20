@@ -87,7 +87,6 @@ end
 -- copy sample to GPU buffer:
 local inputs = cast(torch.Tensor())
 local targets, center, scale, normalize, t_matrix
-
 engine.hooks.onSample = function(state)
     cutorch.synchronize(); collectgarbage();
     inputs:resize(state.sample[1]:size() ):copy(state.sample[1])
@@ -102,7 +101,6 @@ end
 
 local predictions, distances = {}, {}
 local coords = torch.FloatTensor(2, num_keypoints, nSamples):fill(0)
-
 engine.hooks.onForward= function(state)
     xlua.progress(state.t, nSamples)
 
