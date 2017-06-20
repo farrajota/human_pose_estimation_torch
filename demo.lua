@@ -1,7 +1,7 @@
 --[[
     Human pose estimation demo.
 
-    This script randomly samples 'N' images from a dataset and 
+    This script randomly samples 'N' images from a dataset and
     displays the predictions of body joint of a network.
 
     Warning: requires either 'qlua' or 'display' module to work.
@@ -70,7 +70,7 @@ for i = 1,opt.demo_nsamples do
     -- get random image
     local idx = torch.random(1, loader.size) -- get random idx
     local im, center, scale, _ = getSampleBenchmark(loader, idx)
-    
+
     -- process body joint predictions
     input[1]:copy(im) -- copy data from CPU to GPU
     local out = model:forward(input)
@@ -92,7 +92,8 @@ for i = 1,opt.demo_nsamples do
     local x1, x2 = center_x_slice:min(), center_x_slice:max()
     local center_y_slice = im[{{1}, {}, {opt.inputRes/2}}]:squeeze():gt(0):nonzero()
     local y1, y2 = center_y_slice:min(), center_y_slice:max()
-    local heatmaps_disp = {image.crop(im, x1, y1, x2, y2)}
+    local skeliImg = drawSkeleton(im, hm, torch.mul(preds_hm[1], opt.inputRes/opt.outputRes))
+    local heatmaps_disp = {image.crop(skeliImg, x1, y1, x2, y2)}  --{image.crop(im, x1, y1, x2, y2)}
     for i=1, #heatmaps do
         table.insert(heatmaps_disp, image.crop(image.scale(heatmaps[i], opt.inputRes),x1,y1,x2,y2))
     end
@@ -109,7 +110,8 @@ for i = 1,opt.demo_nsamples do
             print('Saving plots to: ' .. paths.concat(opt.save, 'plot'))
             os.execute('mkdir -p ' .. paths.concat(opt.save, 'plot'))
         end
-        image.save(paths.concat(opt.save, 'plot','sample_' .. idx..'.png'), heatmaps_disp[1])
+        image.save(paths.concat(opt.save, 'plot','sample_' .. idx..'.png'), image.crop(im, x1, y1, x2, y2))
+        image.save(paths.concat(opt.save, 'plot','sample_' .. idx..'_skeleton.png'), skeliImg)
         for j=2, #heatmaps_disp do
             image.save(paths.concat(opt.save, 'plot', 'sample_'.. idx..'_heatmap_'..(j-1)..'.png'), heatmaps_disp[j])
         end

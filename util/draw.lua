@@ -2,6 +2,7 @@
     Functions used in the demo display.
 ]]
 
+
 local function drawLineColor(img,pt1,pt2,width,color)
     -- I'm sure there's a line drawing function somewhere in Torch,
     -- but since I couldn't find it here's my basic implementation
@@ -29,7 +30,87 @@ end
 
 ------------------------------------------------------------------------------------------------------------
 
-function drawSkeleton(input, hms, coords)
+function drawSkeletonFLIC(input, hms, coords)
+
+    local im = input:clone()
+
+    local pairRef = {
+        --{1,4}, {2,5}, {3,6}, {7,8}
+        {1,2}, {2,3},
+        {4,5}, {5,6},
+        {7,8},
+        {9,10}, {10,11}, {9,11}
+
+    }
+
+    local partNames = {'LSho','LElb','LWri','RSho','RElb','RWri',
+                       'LHip','RHip', 'LEye', 'REye', 'Nose'}
+    local partColor = {1,1,1,2,2,2,3,3,4,4,4}
+
+    local actThresh = 0.00001
+
+    -- Loop through adjacent joint pairings
+    for i = 1,#pairRef do
+        if hms[pairRef[i][1]]:mean() > actThresh and hms[pairRef[i][2]]:mean() > actThresh then
+            -- Set appropriate line color
+            local color
+            if partColor[pairRef[i][1]] == 1 then color = {.1, 1, .1}
+            elseif partColor[pairRef[i][1]] == 2 then color = {1, 0, .3}
+            elseif partColor[pairRef[i][1]] == 3 then color = {0, 0, 1}
+            elseif partColor[pairRef[i][1]] == 4 then color = {0, .2, 1}
+            else color = {.7,0,.7} end
+
+            -- Draw line
+            im = drawLineColor(im, coords[pairRef[i][1]], coords[pairRef[i][2]], 4, color, 0)
+        end
+    end
+
+    return im
+end
+
+------------------------------------------------------------------------------------------------------------
+
+function drawSkeletonLSP(input, hms, coords)
+
+    local im = input:clone()
+
+    local pairRef = {
+        {1,2},      {2,3},
+        {4,5},      {5,6},
+        {7,8},      {8,9},
+        {10,11},    {11,12}
+        {13,14},
+    }
+
+    local partNames = {'RAnk','RKne','RHip','LHip','LKne','LAnk',
+                       'RWri','RElb','RSho','LSho','LElb','LWri',
+                       'Neck','Head'}
+    local partColor = {1,1,1,2,2,2,3,3,3,4,4,4,0,0}
+
+    local actThresh = 0.002
+
+    -- Loop through adjacent joint pairings
+    for i = 1,#pairRef do
+        if hms[pairRef[i][1]]:mean() > actThresh and hms[pairRef[i][2]]:mean() > actThresh then
+            -- Set appropriate line color
+            local color
+            if partColor[pairRef[i][1]] == 1 then color = {0, .3, 1}
+            elseif partColor[pairRef[i][1]] == 2 then color = {1, .3, 0}
+            elseif partColor[pairRef[i][1]] == 3 then color = {0, 0, 1}
+            elseif partColor[pairRef[i][1]] == 4 then color = {1, 0, 0}
+            else color = {.7,0,.7} end
+
+            -- Draw line
+            im = drawLineColor(im, coords[pairRef[i][1]], coords[pairRef[i][2]], 4, color, 0)
+        end
+    end
+
+    return im
+end
+
+------------------------------------------------------------------------------------------------------------
+
+function drawSkeletonMPII(input, hms, coords)
 
     local im = input:clone()
 
@@ -53,10 +134,10 @@ function drawSkeleton(input, hms, coords)
         if hms[pairRef[i][1]]:mean() > actThresh and hms[pairRef[i][2]]:mean() > actThresh then
             -- Set appropriate line color
             local color
-            if partColor[pairRef[i][1]] == 1 then color = {0,.3,1}
-            elseif partColor[pairRef[i][1]] == 2 then color = {1,.3,0}
-            elseif partColor[pairRef[i][1]] == 3 then color = {0,0,1}
-            elseif partColor[pairRef[i][1]] == 4 then color = {1,0,0}
+            if partColor[pairRef[i][1]] == 1 then color = {0, .3, 1}
+            elseif partColor[pairRef[i][1]] == 2 then color = {1, .3, 0}
+            elseif partColor[pairRef[i][1]] == 3 then color = {0, 0, 1}
+            elseif partColor[pairRef[i][1]] == 4 then color = {1, 0, 0}
             else color = {.7,0,.7} end
 
             -- Draw line
@@ -67,44 +148,25 @@ function drawSkeleton(input, hms, coords)
     return im
 end
 
+------------------------------------------------------------------------------------------------------------
 
-function drawSkeletonFLIC(input, hms, coords)
+function drawSkeleton(input, hms, coords)
+    assert(input)
+    assert(hms)
+    assert(coords)
 
-    local im = input:clone()
-
-    local pairRef = {
-        --{1,4}, {2,5}, {3,6}, {7,8}
-        {1,2}, {2,3},
-        {4,5}, {5,6},
-        {7,8},
-        {9,10}, {10,11}, {9,11}
-
-    }
-
-
-    local partNames = {'LSho','LElb','LWri','RSho','RElb','RWri',
-                       'LHip','RHip', 'LEye', 'REye', 'Nose'}
-    local partColor = {1,1,1,2,2,2,3,3,4,4,4}
-
-    local actThresh = 0.00001
-
-    -- Loop through adjacent joint pairings
-    for i = 1,#pairRef do
-        if hms[pairRef[i][1]]:mean() > actThresh and hms[pairRef[i][2]]:mean() > actThresh then
-            -- Set appropriate line color
-            local color
-            if partColor[pairRef[i][1]] == 1 then color = {0.1,1,0.1}
-            elseif partColor[pairRef[i][1]] == 2 then color = {1,0,0.3}
-            elseif partColor[pairRef[i][1]] == 3 then color = {0,0,1}
-            elseif partColor[pairRef[i][1]] == 4 then color = {0,0.2,1}
-            else color = {.7,0,.7} end
-
-            -- Draw line
-            im = drawLineColor(im, coords[pairRef[i][1]], coords[pairRef[i][2]], 4, color, 0)
-        end
+    local str = string.lower(opt.dataset)
+    if str == 'flic' then
+        return drawSkeletonFLIC(input, hms, coords)
+    elseif str == 'lsp' or str == 'lspe' or str == 'mpii+lsp' then
+        return drawSkeletonLSP(input, hms, coords)
+    elseif str == 'mpii' then
+        return drawSkeletonMPII(input, hms, coords)
+    elseif str == 'coco' then
+        error('skeleton draw for the COCO dataset is not yet available.')
+    else
+        error('Invalid dataset: ' .. opt.dataset)
     end
-
-    return im
 end
 
 ------------------------------------------------------------------------------------------------------------
@@ -163,7 +225,7 @@ function drawOutputFLIC(input, hms, coords)
     end
     local totalHm = compileImages(colorHms, 4, 4, 64)
     im = compileImages({im,totalHm}, 1, 2, 256)
-    im = image.scale(im,756)
+    --im = image.scale(im,756)
     return im
 end
 
