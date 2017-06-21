@@ -111,7 +111,7 @@ for i = 1,opt.demo_nsamples do
             os.execute('mkdir -p ' .. paths.concat(opt.save, 'plot'))
         end
         image.save(paths.concat(opt.save, 'plot','sample_' .. idx..'.png'), image.crop(im, x1, y1, x2, y2))
-        image.save(paths.concat(opt.save, 'plot','sample_' .. idx..'_skeleton.png'), skeliImg)
+        image.save(paths.concat(opt.save, 'plot','sample_' .. idx..'_skeleton.png'), image.crop(skeliImg, x1, y1, x2, y2))
         for j=2, #heatmaps_disp do
             image.save(paths.concat(opt.save, 'plot', 'sample_'.. idx..'_heatmap_'..(j-1)..'.png'), heatmaps_disp[j])
         end
