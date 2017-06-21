@@ -153,22 +153,20 @@ When training a network, a small sample of the overall dataset is used to comput
 
 ### Benchmarking against other methods
 
-To process the prediction of body joints on a dataset, run `th benchmark.lua  -expID <name_exp> -dataset <name_exp>`. This will process all predictions for all annotations of a dataset and store it to disk to two files (`Predictions.t7` + `Predictions.mat`) in the folder of the experiment provided in `-expID`.
+To benchmark a trained model on the FLIC or LSP datasets run `th benchmark.lua  -expID <name_exp> -dataset <name_exp>`. This will process predictions of all body joints for all images of the selected dataset and store them to disk into two files (`Predictions.t7` + `Predictions.mat`) inside the folder of the experiment.
 
-Furthermore, for the FLIC and LSP datasets, this repo provides a benchmarking procedure to compare the results a trained network with other methods for body joint prediction whose predictions are made available online. For the MPII and COCO datasets, you will need to use their evaluation servers.
+Furthermore, for the FLIC and LSP datasets, this repo provides a comparison with other methods for body joint prediction whose predictions are made available online ([lsp results are available here](http://human-pose.mpi-inf.mpg.de/#related_benchmarks); for FLIC results I had to manually search some of them on github). To evaluate on the MPII and COCO datasets you will need to use their evaluation servers if you want to compare the results with other methods.
 
 ### Additional information
 
 #### Accuracy metric
 
-For convenience during training, the accuracy function evaluates PCK by comparing the output heatmap of the network to the ground truth heatmap. However, this should provide a good enough performance measure when training a network on any dataset.
+For convenience during training, the accuracy function evaluates the PCK metric by comparing the output heatmap of the network to the ground truth heatmap. This should provide a good enough performance measure when training a network on any dataset.
 
 
 #### Additional notes
 
-Due to problems in cleaning grad buffers with `:clearState()` in order to store models to disk which would cause crashes due to insufficient memory when re-populating the buffers in the GPU memory, here the model's parameters on GPU are copied to a copy of the model which is stored on Ram. This means that, when the model needs to be loaded, a convertion between `nn` and `cudnn` is required for it to run properly.
-
-Besides this small catch the network should work after the conversion.
+Due to problems in cleaning temporary buffers (grad/output buffers) with `:clearState()`, in order to store models to disk, this option is hidden behind an input flag. For our setup, using `:clearState()` with the GPUs memory almost maxed out, this would cause crashes due to insufficient memory when re-populating the buffers. In case of training networks that are smaller or have less parameters this should not be an issue (or if you have a GPU with 12GB+ ram).
 
 
 ## License
