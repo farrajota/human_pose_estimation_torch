@@ -92,6 +92,9 @@ end
 ------------------------------------------------------------------------------------------------------------
 
 local function loader_lsp(set_name)
+    local string_ascii = require 'dbcollection.utils.string_ascii'
+    local ascii2str = string_ascii.convert_ascii_to_str
+
     local dbloader = get_db_loader('lsp')
 
     -- number of samples per train/test sets
@@ -102,10 +105,10 @@ local function loader_lsp(set_name)
 
     -- data loader function
     local data_loader = function(idx)
-        local data = dbloader:object(set_name, idx, true)
+        local data = dbloader:object(set_name, idx, true)[1]
 
-        local filename = paths.concat(dbloader.data_dir, data[1])
-        local keypoints = data[2]
+        local filename = paths.concat(dbloader.data_dir, ascii2str(data[1])[1])
+        local keypoints = data[2][1]
         local kps_coords_x = keypoints:select(2,1)
         local kps_coords_y = keypoints:select(2,2)
         local kps_x=kps_coords_x[kps_coords_x:gt(0)]
