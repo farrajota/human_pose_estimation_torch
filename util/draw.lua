@@ -87,7 +87,7 @@ function drawSkeletonLSP(input, hms, coords)
                        'Neck','Head'}
     local partColor = {1,1,1,2,2,2,3,3,3,4,4,4,0,0}
 
-    local actThresh = 0.002
+    local actThresh = 0.001
 
     -- Loop through adjacent joint pairings
     for i = 1,#pairRef do
@@ -96,8 +96,8 @@ function drawSkeletonLSP(input, hms, coords)
             local color
             if partColor[pairRef[i][1]] == 1 then color = {0, .3, 1}
             elseif partColor[pairRef[i][1]] == 2 then color = {1, .3, 0}
-            elseif partColor[pairRef[i][1]] == 3 then color = {0, 0, 1}
-            elseif partColor[pairRef[i][1]] == 4 then color = {1, 0, 0}
+            elseif partColor[pairRef[i][1]] == 3 then color = {.2, 1, 0}
+            elseif partColor[pairRef[i][1]] == 4 then color = {1, 1, 0}
             else color = {.7,0,.7} end
 
             -- Draw line
