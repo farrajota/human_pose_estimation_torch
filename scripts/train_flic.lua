@@ -43,7 +43,7 @@ do
         nFeats = 256,
         schedule = "{{50,2.5e-4,0},{15,1e-4,0},{10,5e-5,0}}",
         batchSize = 4,
-        snapshot = 10,
+        snapshot = 25,
         nGPU = 2,
         saveBest = 'true',
         continue = 'false',
