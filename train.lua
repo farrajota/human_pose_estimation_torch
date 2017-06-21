@@ -130,6 +130,7 @@ engine.hooks.onStartEpoch = function(state)
     print(('Starting Train epoch %d/%d  %s'):format(state.epoch+1, state.maxepoch,  opt.save))
     print('**********************************************')
     state.config = optimStateFn(state.epoch+1)
+    state.network:training() -- ensure the model is set to training mode
 end
 
 
