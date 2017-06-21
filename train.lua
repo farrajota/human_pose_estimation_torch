@@ -198,20 +198,19 @@ engine.hooks.onEndEpoch = function(state)
         local ts_accuracy = meters.test_accu:value()
         loggers.test:add{ts_loss, ts_accuracy}
         print(('Test Loss: %0.5f; Acc: %0.5f'):format(meters.test_err:value(),  meters.test_accu:value()))
-    end
 
-    -----------------------------
-    -- save the network to disk
-    -----------------------------
-
-    storeModel(state.network.modules[1], state.config, state.epoch, opt)
-
-    if nBatchesTest > 0 then
+        --[[ Save model with the best accuracy ]]--
         if ts_accuracy > test_best_accu and opt.saveBest then
             storeModelBest(state.network.modules[1], opt)
             test_best_accu = ts_accuracy
         end
     end
+
+    -----------------------------
+    -- save model snapshots to disk
+    -----------------------------
+
+    storeModel(state.network.modules[1], state.config, state.epoch, opt)
 
     state.t = 0
 end
