@@ -1,5 +1,5 @@
 --[[
-    This script trains a network on the FLIC dataset under some configurations.
+    Train the 'hg-generic' (8 stacks) network arch on the FLIC dataset.
 
     Info:
 
@@ -11,51 +11,66 @@
 ]]
 
 
---[[ General configs ]]
-optim_method = 'adam'
-nThreads = 4
+local function exec_command(command)
+    print('\n')
+    print('Executing command: ' .. command)
+    print('\n')
+    os.execute(command)
+end
 
 
 --------------------------------------------------------------------------------
--- Train stacked network
+-- Train network
 --------------------------------------------------------------------------------
 
-local info = {
-    expID = 'hg-generic8-v2',
-    netType = 'hg-generic',
-    colourNorm = 'false',
-    colourjit = 'true',
-    centerjit = 0,
-    pca = 'false',
-    dropout = 0,
-    spatialdropout = 0,
-    critweights = 'none',
+do
+    local info = {
+        -- experiment id
+        expID = 'hg-generic8',
+        netType = 'hg-generic',
+        dataset = 'flic',
 
-    scale = 0.30,
-    rotate = 40,
-    rotRate = 0.2,
-    nStack = 8,
-    nFeats = 256,
-    schedule = '{{50,2.5e-4,0},{15,1e-4,0},{10,5e-5,0}}',
-    --schedule = '{{40,2.5e-4,0},{10,1e-4,0},{10,5e-5,0}}',
-    batchSize = 4,
-    snapshot = 25,
-    nGPU = 1,
-    saveBest = 'false'
-}
+        -- data augment
+        colourNorm = 'false',
+        colourjit = 'true',
+        centerjit = 0,
+        pca = 'false',
+        dropout = 0,
+        spatialdropout = 0,
+        critweights = 'none',
+        scale = 0.30,
+        rotate = 40,
+        rotRate = 0.2,
 
+        -- train options
+        optMethod = 'adam',
+        nThreads = 2,
+        trainIters = 1000,
+        testIters = 300,
+        nStack = 8,
+        nFeats = 256,
+        schedule = "{{50,2.5e-4,0},{15,1e-4,0},{10,5e-5,0}}",
+        batchSize = 4,
+        snapshot = 10,
+        nGPU = 1,
+        saveBest = 'true',
+        continue = 'false',
+        clear_buffers = 'true',
+    }
 
--- train model flic
-os.execute(('CUDA_VISIBLE_DEVICES=1 th train.lua -dataset flic -expID %s -netType %s'..
-    ' -nGPU %d -optMethod %s -nThreads %d -colourNorm %s -colourjit %s'..
-    ' -centerjit %d -dropout %.2f -spatialdropout %.2f -critweights %s -snapshot %d -schedule %s'..
-    ' -rotRate %0.2f -nStack %d -nFeats %d -scale %0.2f -batchSize %d -saveBest %s')
-    :format(info.expID, info.netType, info.nGPU,
-        optim_method, nThreads, info.colourNorm,
-        info.colourjit, info.centerjit,
-        info.dropout, info.spatialdropout, info.critweights,
-        info.snapshot, info.schedule,
-        info.rotRate, info.nStack, info.nFeats, info.scale, info.batchSize, info.saveBest
-    )
-)
+    -- concatenate options fields to a string
+    local str_args = ''
+    for k, v in pairs(info) do
+        str_args = str_args .. ('-%s %s '):format(k, v)
+    end
 
+    local str_cuda
+    if info.nGPU <= 1 then
+        str_cuda = 'CUDA_VISIBLE_DEVICES=1'
+    else
+        str_cuda = 'CUDA_VISIBLE_DEVICES=1,0'
+    end
+
+    -- train network
+    exec_command(('%s th train.lua %s'):format(str_cuda, str_args))
+end
