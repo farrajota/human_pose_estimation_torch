@@ -77,7 +77,7 @@ To run the code in this repository you'll need the following resources:
 - [Torch7](http://torch.ch/docs/getting-started.html)
 - Matlab >= 2012a (for running the benchmark code)
 - Python >= 2.7 or >= 3.5 (for using  [dbcollection](https://github.com/farrajota/dbcollection))
-- NVIDIA GPU with compute capability 3.5+ (6GB+ ram)
+- NVIDIA GPU with compute capability 3.5+ (10GB+ ram or two 6GB+ ram GPUs)
 
 > Note: Here we used two 6GB ram GPUs to train the network. When using this code, we recommend, at least, one GPU with 6GB ram for inference and one 12GB ram GPU for training a model.
 
