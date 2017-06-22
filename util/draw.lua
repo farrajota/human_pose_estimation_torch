@@ -214,6 +214,8 @@ function drawOutput(input, hms, coords)
     return im
 end
 
+------------------------------------------------------------------------------------------------------------
+
 function drawOutputFLIC(input, hms, coords)
     local im = drawSkeletonFLIC(input, hms, coords)
 
@@ -229,6 +231,8 @@ function drawOutputFLIC(input, hms, coords)
     return im
 end
 
+------------------------------------------------------------------------------------------------------------
+
 function drawHeatmapPartsFLIC(input, hms, coords)
 
     local colorHms = {}
@@ -240,6 +244,8 @@ function drawHeatmapPartsFLIC(input, hms, coords)
     return colorHms
 end
 
+------------------------------------------------------------------------------------------------------------
+
 function drawImgHeatmapParts(input, hms)
     local colorHms = {}
     local inp64 = image.scale(input,64):mul(.3)
@@ -248,4 +254,13 @@ function drawImgHeatmapParts(input, hms)
         colorHms[i]:mul(.7):add(inp64)
     end
     return colorHms
+end
+
+------------------------------------------------------------------------------------------------------------
+
+function drawImgHeatmapSingle(input, hm)
+    local hm256 = image.scale(hm, opt.inputRes)
+    local colorHm =  colorHM(hm256)
+    colorHm = colorHm:mul(.7):add(torch.mul(input, .3))
+    return colorHm
 end
