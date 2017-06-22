@@ -90,8 +90,9 @@ local function Parse(arg)
     cmd:text()
     cmd:text(' ---------- Demo options --------------------------------------')
     cmd:text()
-    cmd:option('-demo_nsamples',        5, 'Number of samples to display predictions.')
-    cmd:option('-demo_plot_save', 'false', 'Save plots to disk.')
+    cmd:option('-demo_nsamples',            5, 'Number of samples to display predictions.')
+    cmd:option('-demo_plot_save',     'false', 'Save plots to disk.')
+    cmd:option('-demo_plot_networks_predictions', 'false', 'Plot the heatmap results of all network outputs.')
     cmd:text()
 
 
@@ -100,9 +101,8 @@ local function Parse(arg)
     opt.save = paths.concat(opt.expDir, opt.expID)
     opt.ensemble = paths.concat(opt.expDir, opt.ensembleID)
     if opt.loadModel == '' or opt.loadModel == 'none' then
-        --opt.load = paths.concat(opt.save, 'final_model.t7')
-        --opt.load = paths.concat(opt.save, 'model_final.t7')
-        opt.load = paths.concat(opt.save, 'best_model_accuracy.t7')
+        opt.load = paths.concat(opt.save, 'model_final.t7')
+        --opt.load = paths.concat(opt.save, 'best_model_accuracy.t7')
         --opt.load = paths.concat(opt.save, 'best_model_accu.t7')
     else
         opt.load = opt.loadModel
@@ -129,6 +129,7 @@ local function Parse(arg)
     --opt.critweights = utils.Str2Bool(opt.critweights)
     opt.reprocess = utils.Str2Bool(opt.reprocess)
     opt.demo_plot_save = utils.Str2Bool(opt.demo_plot_save)
+    opt.demo_plot_networks_predictions = utils.Str2Bool(opt.demo_plot_networks_predictions)
 
     return opt
 end

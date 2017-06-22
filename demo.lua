@@ -104,7 +104,25 @@ for i = 1,opt.demo_nsamples do
         display.image(heatmaps_disp, {title='heatmaps_image_'..i})
     end
 
-    --sys.sleep(3)
+
+    if opt.demo_plot_networks_predictions then
+        ae_outputs = {image.crop(im, x1, y1, x2, y2)}
+        for k=1, #out do
+            local ae_predictions = out[k][1]:float()
+            ae_predictions[ae_predictions:lt(0)] = 0
+            local ae_heatmap_concat = ae_predictions:sum(1):squeeze()
+            local ae_heatmap_color = drawImgHeatmapSingle(im, ae_heatmap_concat)
+            table.insert(ae_outputs, image.crop(ae_heatmap_color,x1,y1,x2,y2))
+        end
+
+        if pcall(require, 'qt') then
+            image.display({image = ae_outputs, title='auto-encoders outputs heatmaps_image_'..i})
+        else
+            display.image(ae_outputs, {title='auto-encoders outputs heatmaps_image_'..i})
+        end
+    end
+
+
     if opt.demo_plot_save then
         if not paths.dirp(paths.concat(opt.save, 'plot')) then
             print('Saving plots to: ' .. paths.concat(opt.save, 'plot'))
@@ -114,6 +132,12 @@ for i = 1,opt.demo_nsamples do
         image.save(paths.concat(opt.save, 'plot','sample_' .. idx..'_skeleton.png'), image.crop(skeliImg, x1, y1, x2, y2))
         for j=2, #heatmaps_disp do
             image.save(paths.concat(opt.save, 'plot', 'sample_'.. idx..'_heatmap_'..(j-1)..'.png'), heatmaps_disp[j])
+        end
+
+        if opt.demo_plot_networks_predictions then
+            for j=2, #ae_outputs do
+                image.save(paths.concat(opt.save, 'plot', 'sample_'.. idx..'_AE_'..(j-1)..'.png'), ae_outputs[j])
+            end
         end
     end
 
