@@ -135,6 +135,9 @@ end
 ------------------------------------------------------------------------------------------------------------
 
 local function loader_mpii(set_name)
+    local string_ascii = require 'dbcollection.utils.string_ascii'
+    local ascii2str = string_ascii.convert_ascii_to_str
+
     local dbloader = get_db_loader('mpii')
 
     -- split train set annotations into two. (train + val)
@@ -147,14 +150,14 @@ local function loader_mpii(set_name)
     local nJoints = dbloader:size(set_name, 'keypoints')[2]
 
     -- data loader function
-    local data_loader = function(idx, num_keypoints)
-        local data = dbloader:object(set_name, idx, true)
+    local data_loader = function(idx, flag_lsp)
+        local data = dbloader:object(set_name, idx, true)[1]
 
-        local filename = paths.concat(dbloader.data_dir, data[1])
-        local keypoints = data[5]
-        local head_coord = data[4]
-        local center = data[3]
-        local scale = data[2]
+        local filename = paths.concat(dbloader.data_dir,  ascii2str(data[1])[1])
+        local keypoints = data[5][1]
+        local head_coord = data[4][1]
+        local center = data[3][1]
+        local scale = data[2][1]
         local normalize = torch.FloatTensor({head_coord[3]-head_coord[1],
                                              head_coord[4]-head_coord[2]}):norm() * 0.6
 
@@ -166,10 +169,10 @@ local function loader_mpii(set_name)
         local img = image.load(filename, 3, 'float')
 
         -- image, keypoints, center coords, scale, number of joints
-        if num_keypoints then
+        if flag_lsp then
             -- This section is only used in conjunction with the lsp dataset
             local kps = keypoints:index(1,torch.LongTensor({1,2,3,4,5,6,11,12,13,14,15,16,9,10}))
-            return img, kps, center, scale, num_keypoints, normalize
+            return img, kps, center, scale, kps:size(1), normalize
         else
             return img, keypoints:view(nJoints, 3), center, scale, nJoints, normalize
         end
@@ -229,23 +232,36 @@ end
 ------------------------------------------------------------------------------------------------------------
 
 local function loader_mpii_lsp(set_name)
-    local loader_mpii = loader_mpii(set_name)
-    local loader_lsp = loader_lsp(set_name)
+    local data_loader, set_size, nJoints
+    if set_name == 'train' then
+        local loader_mpii = loader_mpii(set_name)
+        local loader_lsp = loader_lsp(set_name)
 
-    -- number of samples per train/test sets
-    local size_lsp = loader_lsp.size
-    local size_mpii = loader_mpii.size
-    local set_size = size_lsp + size_mpii
+        -- number of samples per train/test sets
+        local size_lsp = loader_lsp.size
+        local size_mpii = loader_mpii.size
+        set_size = size_lsp + size_mpii
 
-    -- number of keypoints (body joints)
-    local nJoints = loader_lsp.num_keypoints
+        -- number of keypoints (body joints)
+        nJoints = loader_lsp.num_keypoints
 
-    local data_loader = function(idx)
-        if idx > size_lsp then
-            return loader_mpii.loader(idx - size_lsp, nJoints)
-        else
-            return loader_lsp.loader(idx)
+        data_loader = function(idx)
+            if idx > size_lsp then
+                return loader_mpii.loader(idx - size_lsp, true)
+            else
+                return loader_lsp.loader(idx)
+            end
         end
+    else
+        local loader_lsp = loader_lsp(set_name)
+
+        -- number of samples per train/test sets
+        set_size = loader_lsp.size
+
+        -- number of keypoints (body joints)
+        nJoints = loader_lsp.num_keypoints
+
+        data_loader = loader_lsp.loader
     end
 
     return {
