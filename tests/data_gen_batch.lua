@@ -18,7 +18,7 @@ local opts = paths.dofile('../options.lua')
 opt = opts.parse(arg)
 opt.dataset = 'mpii+lsp'
 opt.rotRate=0.2
-niters = 100
+niters = 10000
 mode = 'train'
 
 local data_loader = select_dataset_loader(opt.dataset, mode)
@@ -26,8 +26,8 @@ local loader = data_loader[mode]
 
 for i=1, niters do
     print(('Iter %d/%d'):format(i, niters))
-    if i==24 then
-      aqui=1
+    if i==60 then
+        a=1  -- stop debugger here
     end
     local input, label = getSampleBatch(loader, opt.batchSize)
 end
