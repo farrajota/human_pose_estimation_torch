@@ -384,7 +384,7 @@ function shuffleLR(x)
         matchedParts = {
             {1,4}, {2,5}, {3,6}, {7,8}, {9,10}
         }
-    elseif opt.dataset == 'lsp' or opt.dataset =='mpii+lsp' then
+    elseif opt.dataset == 'lsp' or opt.dataset =='lsp+mpii' then
         matchedParts = {
             {1,6}, {2,5}, {3,4}, {7,12}, {8,11}, {9,10}
         }

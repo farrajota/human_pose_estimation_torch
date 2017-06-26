@@ -20,7 +20,7 @@ do
         -- experiment id
         expID = 'final-best',
         netType = 'hg-generic-best',
-        dataset = 'mpii+lsp',
+        dataset = 'lsp+mpii',
 
         -- data augment
         colourNorm = 'false',
@@ -77,7 +77,7 @@ do
         expID = 'final-ensemble-best',
         netType = 'hg-generic-ensemble',
         ensembleID = 'final-best',
-        dataset = 'mpii+lsp',
+        dataset = 'lsp+mpii',
 
         -- data augment
         colourNorm = 'false',

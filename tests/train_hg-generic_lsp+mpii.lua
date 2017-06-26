@@ -28,7 +28,7 @@ do
         -- experiment id
         expID = 'hg-generic8',
         netType = 'hg-generic',
-        dataset = 'mpii+lsp',
+        dataset = 'lsp+mpii',
 
         -- data augment
         colourNorm = 'false',

@@ -231,7 +231,8 @@ end
 
 ------------------------------------------------------------------------------------------------------------
 
-local function loader_mpii_lsp(set_name)
+--[[ Combine the LSP + MPII datasets ]]--
+local function loader_lsp_mpii(set_name)
     local data_loader, set_size, nJoints
     if set_name == 'train' then
         local loader_mpii = loader_mpii(set_name)
@@ -283,10 +284,10 @@ local function fetch_loader_dataset(name, mode)
         return loader_mpii(mode)
     elseif str == 'coco' then
         return loader_coco(mode)
-    elseif str == 'mpii+lsp' then
-        return loader_mpii_lsp(mode)
+    elseif str == 'lsp+mpii' then
+        return loader_lsp_mpii(mode)
     else
-        error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | coco | mpii+lsp.'):format(name))
+        error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | coco | lsp+mpii.'):format(name))
     end
 end
 

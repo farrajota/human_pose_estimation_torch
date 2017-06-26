@@ -16,7 +16,7 @@ paths.dofile('../data.lua')
 
 local opts = paths.dofile('../options.lua')
 opt = opts.parse(arg)
-opt.dataset = 'mpii+lsp'
+opt.dataset = 'lsp+mpii'
 opt.rotRate=0.2
 niters = 10000
 mode = 'train'

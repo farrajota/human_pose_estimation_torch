@@ -46,7 +46,7 @@ local info = {
 
 
 -- train model flic
-os.execute(('CUDA_VISIBLE_DEVICES=1,0 th train.lua -dataset mpii+lsp -expID %s -netType %s'..
+os.execute(('CUDA_VISIBLE_DEVICES=1,0 th train.lua -dataset lsp+mpii -expID %s -netType %s'..
     ' -nGPU %d -optMethod %s -nThreads %d -colourNorm %s -colourjit %s'..
     ' -centerjit %d -dropout %.2f -spatialdropout %.2f -critweights %s -snapshot %d -schedule %s'..
     ' -rotRate %0.2f -nStack %d -nFeats %d -scale %0.2f -batchSize %d -saveBest %s')
@@ -89,7 +89,7 @@ info = {
 
 --
 -- train ensemble flic
-os.execute(('CUDA_VISIBLE_DEVICES=1,0 th train.lua -dataset mpii+lsp -expID %s -netType %s -ensembleID %s'..
+os.execute(('CUDA_VISIBLE_DEVICES=1,0 th train.lua -dataset lsp+mpii -expID %s -netType %s -ensembleID %s'..
     ' -nGPU %d -optMethod %s -nThreads %d -colourNorm %s -colourjit %s'..
     ' -centerjit %d -dropout %.2f -spatialdropout %.2f -critweights %s -snapshot %d -schedule %s'..
     ' -rotRate %0.2f -nStack %d -nFeats %d -scale %0.2f -batchSize %d')

@@ -4,7 +4,7 @@
 
 
 configs = {
-    dataset = 'mpii+lsp',
+    dataset = 'lsp+mpii',
     expID = 'final-best',
     demo_nsamples = 5,
     demo_plot_save = 'true',

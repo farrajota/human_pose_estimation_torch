@@ -28,7 +28,7 @@ do
         -- experiment id
         expID = 'hg-stacked',
         netType = 'hg-stacked',
-        dataset = 'mpii+lsp',
+        dataset = 'lsp+mpii',
 
         -- data augment
         colourNorm = 'false',

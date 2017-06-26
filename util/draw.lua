@@ -158,7 +158,7 @@ function drawSkeleton(input, hms, coords)
     local str = string.lower(opt.dataset)
     if str == 'flic' then
         return drawSkeletonFLIC(input, hms, coords)
-    elseif str == 'lsp' or str == 'lspe' or str == 'mpii+lsp' then
+    elseif str == 'lsp' or str == 'lspe' or str == 'lsp+mpii' then
         return drawSkeletonLSP(input, hms, coords)
     elseif str == 'mpii' then
         return drawSkeletonMPII(input, hms, coords)
