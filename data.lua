@@ -41,7 +41,7 @@ local function get_db_loader(name)
     elseif str == 'mpii' then
         dbloader = dbc.load{name='mpii_pose', task='keypoints_d', data_dir=opt.data_dir}
     elseif str == 'coco' then
-        dbloader = dbc.load{name='coco', task='keypoint_2016_d', data_dir=opt.data_dir}
+        dbloader = dbc.load{name='coco', task='keypoints_2016_d', data_dir=opt.data_dir}
     else
         error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | coco'):format(name))
     end
@@ -202,13 +202,14 @@ local function loader_coco(set_name)
 
     -- data loader function
     local data_loader = function(idx)
-        local data = dbloader:object(set_name, idx, true)
+        local data = dbloader:object(set_name, idx, true)[1]
 
-        local filename = paths.concat(dbloader.data_dir, data[1])
-        local keypoints = data[10]
+        local filename = paths.concat(dbloader.data_dir, ascii2str(data[1])[1])
+        local num_keypoints = data[9][1]
+        local keypoints = data[10][1]
 
         -- calc center coordinates
-        local bbox = data[4]
+        local bbox = data[4][1]
         local center = torch.FloatTensor({(bbox[1]+bbox[3])/2, (bbox[2]+bbox[4])/2})
         local bbox_width = bbox[3]-bbox[1]
         local bbox_height = bbox[4]-bbox[2]
