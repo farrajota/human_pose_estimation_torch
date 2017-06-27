@@ -49,7 +49,7 @@ do
         testIters = 300,
         nStack = 8,
         nFeats = 256,
-        schedule = "{{50,2.5e-4,0},{15,1e-4,0},{10,5e-5,0}}",
+        schedule = "{{30,2.5e-4,0},{10,1e-4,0},{10,5e-5,0}}",
         batchSize = 4,
         snapshot = 10,
         nGPU = 1,
