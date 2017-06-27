@@ -19,7 +19,7 @@ paths.dofile('util/utils.lua')
 
 ------------------------------------------------------------------------------------------------------------
 
---[[ Function for data augmentation, randomly samples on a normal distribution. ]]
+--[[ Function for data augmentation, randomly samples on a normal distribution. ]]--
 local function rnd(x)
     return math.max(-2*x, math.min(2*x, torch.randn(1)[1]*x))
 end
@@ -188,6 +188,9 @@ end
 ------------------------------------------------------------------------------------------------------------
 
 local function loader_coco(set_name)
+    local string_ascii = require 'dbcollection.utils.string_ascii'
+    local ascii2str = string_ascii.convert_ascii_to_str
+
     local dbloader = get_db_loader('coco')
 
     if set_name == 'test' then
@@ -198,19 +201,26 @@ local function loader_coco(set_name)
     local set_size = dbloader:size(set_name)[1]
 
     -- number of keypoints (body joints)
-    local nJoints = dbloader:size(set_name, 'keypoints')[2]
+    local nJoints = dbloader:size(set_name, 'keypoints')[2]/3
 
     -- data loader function
     local data_loader = function(idx)
         local data = dbloader:object(set_name, idx, true)[1]
 
         local filename = paths.concat(dbloader.data_dir, ascii2str(data[1])[1])
-        local num_keypoints = data[9][1]
-        local keypoints = data[10][1]
+        local num_keypoints = data[15][1]
+        local keypoints = data[16][1]:view(nJoints, 3)
+
+        -- discard annotations with less than 15 keypoints
+        if num_keypoints < 12 then
+            return {}
+        end
 
         -- calc center coordinates
-        local bbox = data[4][1]
-        local center = torch.FloatTensor({(bbox[1]+bbox[3])/2, (bbox[2]+bbox[4])/2})
+        local bbox = data[7][1]
+        local center = torch.FloatTensor({(keypoints[6][1]+keypoints[13][1])/2,
+                                          (keypoints[6][2]+keypoints[13][2])/2})
+        --local center = torch.FloatTensor({(bbox[1]+bbox[3])/2, (bbox[2]+bbox[4])/2})
         local bbox_width = bbox[3]-bbox[1]
         local bbox_height = bbox[4]-bbox[2]
         local scale = math.max(bbox_height, bbox_width)/200 * 1.25
@@ -220,7 +230,7 @@ local function loader_coco(set_name)
         local img = image.load(filename, 3, 'float')
 
         -- image, keypoints, center coords, scale, number of joints
-        return img, keypoints:view(nJoints, 3), center, scale, nJoints, normalize
+        return img, keypoints, center, scale, nJoints, normalize
     end
 
     return {
@@ -394,19 +404,61 @@ end
 -- Get a batch of data samples
 -------------------------------------------------------------------------------
 
-function getSampleBatch(data_loader, batchSize)
-    local sample = {}
-    local batchSize = batchSize or opt.batchSize or 1
+local function fetch_single_data(data_loader, idx)
+    assert(data_loader)
+    assert(idx)
+
+    local img, keypoints, center, scale, nJoints = data_loader.loader(idx)
+    if type(img) ~= 'table' then
+        local imgs_t, heatmaps_t = transform_data(img, keypoints, center, scale, nJoints)
+        return {imgs_t, heatmaps_t }
+    else
+        return {}
+    end
+end
+
+------------------------------------------------------------------------------------------------------------
+
+local function get_batch(data_loader, batchSize)
+    assert(data_loader)
+    assert(batchSize)
 
     local size = data_loader.size
+    local max_attempts = 30
+    local batchData, idxUsed = {}, {}
+    for i=1, batchSize do
+        local data = {}
+        local attempts = 0
+        while not next(data) do
+            local idx = torch.random(1, size)
+            if not idxUsed[idx] then
+                data = fetch_single_data(data_loader, idx)
+                idxUsed[idx] = 1
+
+                -- increment attempts counter
+                -- This avoids infinite loops
+                -- if it cannot find a valid
+                -- image + annotations
+                attempts = attempts + 1
+                if attempts > max_attempts then
+                    error('Reached the maximum number of attempts to find an unique batch: ' .. max_attempts)
+                end
+            end
+        end
+        table.insert(batchData, data)
+    end
+    return batchData
+end
+
+------------------------------------------------------------------------------------------------------------
+
+function getSampleBatch(data_loader, batchSize)
+    assert(data_loader)
+
+    local batchSize = batchSize or opt.batchSize or 1
 
     -- get batch data
-    for i=1, batchSize do
-        local idx = torch.random(1, size)
-        local img, keypoints, center, scale, nJoints = data_loader.loader(idx)
-        local imgs_t, heatmaps_t = transform_data(img, keypoints, center, scale, nJoints)
-        table.insert(sample, {imgs_t, heatmaps_t})
-    end
+    local sample = get_batch(data_loader, batchSize)
 
     -- concatenate data
     local imgs_tensor = torch.FloatTensor(batchSize,
