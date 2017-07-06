@@ -13,12 +13,12 @@ end
 
 --[[ Benchmark network ]]
 expID = 'final-best'
-eval_plot_name = 'Ours-best'
+eval_plot_name = '\'Ours-best\''
 exec_command(string.format('th benchmark.lua -dataset lsp -expID %s -eval_plot_name %s',
-                            expID, eval_plot_name)
+                            expID, eval_plot_name))
 
 --[[ Benchmark ensemble network ]]
-expID = 'final-ensemble-best',
-eval_plot_name = 'Ours-ensemble-best'
+expID = 'final-ensemble-best'
+eval_plot_name = '\'Ours-ensemble-best\''
 exec_command(string.format('th benchmark.lua -dataset lsp -expID %s -eval_plot_name %s',
-                            expID, eval_plot_name)
+                            expID, eval_plot_name))
