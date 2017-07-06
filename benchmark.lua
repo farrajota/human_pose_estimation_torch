@@ -156,7 +156,7 @@ print('\nPredictions script complete.')
 --------------------------------------------------------------------------------
 
 local str = string.lower(opt.dataset)
-if str == 'flic' or str == 'lsp'  then
+if str == 'flic' or str == 'lsp' or str == 'lsp+mpii' then
     local benchmark_folder = paths.concat(projectDir, 'human-pose-benchmark')
 
     -- setup algorithm folder
@@ -164,7 +164,7 @@ if str == 'flic' or str == 'lsp'  then
     if not paths.dirp(bench_alg_path) then
         print('Saving everything to: ' .. bench_alg_path)
         os.execute('mkdir -p ' .. bench_alg_path)
-        os.execute(('echo \'Ours\' > %s'):format(paths.concat(bench_alg_path, 'algorithm.txt')))
+        os.execute(('echo \'%s\' > %s'):format(opt.eval_plot_name, paths.concat(bench_alg_path, 'algorithm.txt')))
     end
 
     -- rename predictions file
@@ -173,6 +173,7 @@ if str == 'flic' or str == 'lsp'  then
     if str == 'flic' then
         filename_new = paths.concat(bench_alg_path, 'pred_keypoints_flic_oc.mat')
     else
+        str = 'lsp'
         filename_new = paths.concat(bench_alg_path, 'pred_keypoints_lsp_pc.mat')
     end
     os.execute(('cp %s %s'):format(filename_old, filename_new))
@@ -180,12 +181,16 @@ if str == 'flic' or str == 'lsp'  then
     -- process benchmark
     local command = ('cd %s && matlab -nodisplay -nodesktop -r "try, %s, catch, exit, end, exit"')
                     :format(benchmark_folder, 'benchmark_' .. str)
+
+    print('\nExecuting command:')
+    print(command)
     os.execute(command)
 
     -- copy plots folder to the experiment dir
     os.execute(('cp -ar %s %s'):format(paths.concat(benchmark_folder, 'plots'), paths.concat(opt.save, 'plots')))
 elseif str == 'mpii' or str == 'coco' then
-    -- TODO
+    print(('Warning: benchmarking on the %s dataset is not available here.'):format(str))
+    print('         For that, you must use their online server for evaluation/benchmark.')
 else
     error(('Invalid dataset name: %s. Available datasets: mpii | flic | lsp | coco'):format(name))
 end
