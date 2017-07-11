@@ -30,6 +30,7 @@ outputDim = {{16}, {16}}
 local models = paths.dofile('../models/init.lua')
 
 local test_models = {
+    hg_best= models['hg-generic-best'],
     hg_generic8 = models['hg-generic'],
     hg_generic8_fullconv = models['hg-generic-full-conv'],
     hg_stacked = models['hg-stacked'],
@@ -44,6 +45,11 @@ local test_models = {
     sml_v3_64x64 = paths.dofile('../models/test/SML_v3_5.lua'),
     sml_v3_64x64_fullconv = paths.dofile('../models/test/SML_v3_6.lua'),
     sml_v4_fullconv = paths.dofile('../models/test/SML_v4.lua'),
+    sml_v4_featinc = paths.dofile('../models/test/SML_v4_1.lua'),
+    sml_v4_256x256 = paths.dofile('../models/test/SML_v4_2.lua'),
+    sml_v4_256x256_maxpool_up = paths.dofile('../models/test/SML_v4_3.lua'),
+    sml_v4_256x256_maxpool = paths.dofile('../models/test/SML_v4_4.lua'),
+    sml_v5 = paths.dofile('../models/test/SML_v5.lua'),
 }
 
 
@@ -78,7 +84,7 @@ for model_name, load_model in pairs(test_models) do
         print('Model forward pass successful')
 
         mem1 = optnet.countUsedMemory(model)
-        print('Model1 memory usage: ' .. mem1.total_size/1024/1024)
+        print('Memory usage: ' .. mem1.total_size/1024/1024)
         summary_output[model_name] = mem1.total_size/1024/1024
     else
         print('The forward passed error. Check the model architecture.')
