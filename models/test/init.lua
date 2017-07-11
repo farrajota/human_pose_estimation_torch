@@ -7,14 +7,16 @@ local function additional_network_architectures(model_list)
     local model_list = model_list or {}
 
     -- stacked
-    model_list['hg-stacked']        = paths.dofile('hg-stacked.lua')
-    model_list['hg-stackedV2']      = paths.dofile('hg-stackedV2.lua')
-    model_list['hg-stacked-wide']   = paths.dofile('hg-stacked-wide.lua')
-    model_list['hg-stacked-no-int'] = paths.dofile('hg-stacked-no-int.lua')
+    model_list['hg-stacked']           = paths.dofile('hg-stacked.lua')
+    model_list['hg-stackedV2']         = paths.dofile('hg-stackedV2.lua')
+    model_list['hg-stacked-wide']      = paths.dofile('hg-stacked-wide.lua')
+    model_list['hg-stacked-no-int']    = paths.dofile('hg-stacked-no-int.lua')
+    model_list['hg-stacked-full-conv'] = paths.dofile('hg-stackedFullConv.lua')
     -- generic
     model_list['hg-generic']   = paths.dofile('hg-generic.lua')
     model_list['hg-genericv2'] = paths.dofile('hg-genericv2.lua')
     model_list['hg-genericv3'] = paths.dofile('hg-genericv3.lua')
+    model_list['hg-generic-full-conv'] = paths.dofile('hg-genericFullConv.lua')
     -- RRelu
     model_list['hg-generic-rrelu'] = paths.dofile('hg-generic-rrelu.lua')
     -- modified generic
@@ -58,7 +60,6 @@ local function additional_network_architectures(model_list)
     model_list['sml_v3_5']  = paths.dofile('SML_v3_5.lua')
     model_list['sml_v3_6']  = paths.dofile('SML_v3_6.lua')
     model_list['sml_v4']    = paths.dofile('SML_v4.lua')
-
 
 end
 

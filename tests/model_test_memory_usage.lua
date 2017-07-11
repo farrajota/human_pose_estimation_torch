@@ -31,10 +31,10 @@ local models = paths.dofile('../models/init.lua')
 
 local test_models = {
     hg_generic8 = models['hg-generic'],
-    hg_generic8_fullconv = paths.dofile('../models/hg-genericFullConv.lua'),
+    hg_generic8_fullconv = models['hg-generic-full-conv'],
     hg_stacked = models['hg-stacked'],
     hg_stacked = models['hg-stacked'],
-    hg_stacked_fullconv = paths.dofile('../models/hg-stackedFullConv.lua'),
+    hg_stacked_fullconv = models['hg-stacked-full-conv'],
     sml_v2 = paths.dofile('../models/test/SML_v2.lua'),
     sml_v3 = paths.dofile('../models/test/SML_v3.lua'),
     sml_v3_featinc = paths.dofile('../models/test/SML_v3_1.lua'),
