@@ -60,6 +60,7 @@ local function additional_network_architectures(model_list)
     model_list['sml_v3_5']  = paths.dofile('SML_v3_5.lua')
     model_list['sml_v3_6']  = paths.dofile('SML_v3_6.lua')
     model_list['sml_v4']    = paths.dofile('SML_v4.lua')
+    model_list['sml_v5']    = paths.dofile('SML_v5.lua')
 
 end
 
