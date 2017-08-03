@@ -27,6 +27,7 @@ paths.dofile('util/eval.lua')
 paths.dofile('util/Logger.lua')
 paths.dofile('util/store.lua')
 paths.dofile('util/draw.lua')
+paths.dofile('util/process_mean_std.lua')
 utils = paths.dofile('util/utils.lua')
 
 
