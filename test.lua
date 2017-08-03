@@ -49,7 +49,7 @@ local function getIterator(mode)
                     require 'torchnet'
                     opt = lopt
                     paths.dofile('data.lua')
-                    paths.dofile('transform.lua')
+                    paths.dofile('sample_batch.lua')
                     torch.manualSeed(threadid+opt.manualSeed)
                   end,
         closure = function()

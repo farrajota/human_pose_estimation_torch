@@ -9,11 +9,6 @@ require 'image'
 require 'xlua'
 
 paths.dofile('util/img.lua')
-paths.dofile('util/eval.lua')
-paths.dofile('util/Logger.lua')
-paths.dofile('util/store.lua')
-paths.dofile('util/draw.lua')
-paths.dofile('util/utils.lua')
 
 
 ------------------------------------------------------------------------------------------------------------
