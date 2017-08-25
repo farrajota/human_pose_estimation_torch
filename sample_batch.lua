@@ -41,10 +41,12 @@ function transform_data(img, keypoints, center, scale, nJoints)
     -- Crop image + craft heatmap
     local img_transf = crop2(img, center, scale, rot, opt.inputRes)
     local heatmap = torch.zeros(nJoints, opt.outputRes, opt.outputRes)
+    local kps_transform = torch.FloatTensor(nJoints, 2):fill(0)
     for i = 1, nJoints do
         if keypoints[i][1] > 1 then -- Checks that there is a ground truth annotation
             local new_kp = transform(keypoints[i], center, scale, rot, opt.outputRes)
             drawGaussian(heatmap[i], new_kp, opt.hmGauss)
+            kps_transform[i] = new_kp
         end
     end
 
@@ -54,6 +56,7 @@ function transform_data(img, keypoints, center, scale, nJoints)
         if torch.uniform() < .5 then
             img_transf = flip(img_transf)
             heatmap = shuffleLR(flip(heatmap))
+            kps_transform[{{},{1}}]:mul(-1):add(opt.outputRes + 1)
         end
         -- color augmentation
         if opt.colourjit then
@@ -69,7 +72,7 @@ function transform_data(img, keypoints, center, scale, nJoints)
     end
 
     -- output
-    return img_transf, heatmap
+    return img_transf, heatmap, kps_transform
 end
 
 ------------------------------------------------------------------------------------------------------------
@@ -105,8 +108,8 @@ local function fetch_single_data(data_loader, idx)
     local img, keypoints, center, scale, nJoints = data_loader.loader(idx)
 
     if type(img) ~= 'table' then
-        local imgs_t, heatmaps_t = transform_data(img, keypoints, center, scale, nJoints)
-        return {imgs_t, heatmaps_t }
+        local imgs_t, heatmaps_t, keypoints_t = transform_data(img, keypoints, center, scale, nJoints)
+        return {imgs_t, heatmaps_t, keypoints_t}
     else
         return {}
     end
@@ -164,15 +167,19 @@ function getSampleBatch(data_loader, batchSize)
                                               sample[1][2]:size(1),
                                               sample[1][2]:size(2),
                                               sample[1][2]:size(3)):fill(0)
+    local keypoints_tensor = torch.FloatTensor(batchSize,
+                                              sample[1][3]:size(1),
+                                              sample[1][3]:size(2)):fill(0)
 
     for i=1, batchSize do
         imgs_tensor[i]:copy(sample[i][1])
         heatmaps_tensor[i]:copy(sample[i][2])
+        keypoints_tensor[i]:copy(sample[i][3])
     end
 
     collectgarbage()
 
-    return imgs_tensor, heatmaps_tensor
+    return imgs_tensor, heatmaps_tensor, keypoints_tensor
 end
 
 ------------------------------------------------------------------------------------------------------------
