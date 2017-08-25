@@ -46,7 +46,11 @@ local function fitParabola(x1,x2,x3,y1,y2,y3)
   return b/(2*a)
 end
 
+------------------------------------------------------------------------------------------------------------
+
 local function fitParabolaAll(hms, coords)
+    assert(hms)
+    assert(coords)
     local preds = coords:clone():fill(0)
     local nparts = hms:size(2)
     local h,w = hms:size(3),hms:size(4)
@@ -58,13 +62,13 @@ local function fitParabolaAll(hms, coords)
             if x[1]>=1 and x[3]<=w and y[2]>=1 and y[2]<=h then
                 preds[i][j][1] = fitParabola(x[1],x[2],x[3],hms[i][j][y[2]][x[1]],hms[i][j][y[2]][x[2]],hms[i][j][y[2]][x[3]])
             else
-                preds[i][j][1]=x[2] -- skip parabola fitting for this coordinate
+                preds[i][j][1]=x[2] -- skip parabola fitting for this coordinate (edge case)
             end
 
             if y[1]>=1 and y[3]<=h and x[2]>=1 and x[2]<=w then
                 preds[i][j][2] = fitParabola(y[1],y[2],y[3],hms[i][j][y[1]][x[2]],hms[i][j][y[2]][x[2]],hms[i][j][y[3]][x[2]])
             else
-                preds[i][j][2]=y[2] -- skip parabola fitting for this coordinate
+                preds[i][j][2]=y[2] -- skip parabola fitting for this coordinate (edge case)
             end
         end
     end
@@ -75,37 +79,46 @@ end
 
 function getPreds(hm)
     assert(hm:dim() == 4, 'Input must be 4-D tensor')
-    --local max, idx = torch.max(hm:view(hm:size(1), hm:size(2), hm:size(3) * hm:size(4)), 3)
-    --local preds = torch.repeatTensor(idx, 1, 1, 2):float()
-    --preds[{{}, {}, 1}]:apply(function(x) return (x - 1) % hm:size(4) + 1 end)
-    --preds[{{}, {}, 2}]:add(-1):div(hm:size(3)):floor():add(1)
-
-    local max, idx = torch.max(hm:view(hm:size(1), hm:size(2), hm:size(3) * hm:size(4)), 3)
-    local coords_peak = torch.repeatTensor(idx, 1, 1, 2):float()
-    coords_peak[{{}, {}, 1}]:apply(function(x) if x%hm:size(4)==0 then return hm:size(4) else return x%hm:size(4) end end)
-    coords_peak[{{}, {}, 2}]:div(hm:size(3)):ceil()
-    local preds = fitParabolaAll(hm, coords_peak)
-
+    local preds
+    if opt.subpixel_precision then
+        local max, idx = torch.max(hm:view(hm:size(1), hm:size(2), hm:size(3) * hm:size(4)), 3)
+        local coords_peak = torch.repeatTensor(idx, 1, 1, 2):float()
+        coords_peak[{{}, {}, 1}]:apply(function(x) if x%hm:size(4)==0 then return hm:size(4) else return x%hm:size(4) end end)
+        coords_peak[{{}, {}, 2}]:div(hm:size(3)):ceil()
+        preds = fitParabolaAll(hm, coords_peak)
+    else
+        local max, idx = torch.max(hm:view(hm:size(1), hm:size(2), hm:size(3) * hm:size(4)), 3)
+        preds = torch.repeatTensor(idx, 1, 1, 2):float()
+        preds[{{}, {}, 1}]:apply(function(x) return (x - 1) % hm:size(4) + 1 end)
+        preds[{{}, {}, 2}]:add(-1):div(hm:size(3)):floor():add(1)
+    end
     return preds
 end
 
 ------------------------------------------------------------------------------------------------------------
 
 function getPredsBenchmark(hms, center, scale)
+    assert(hms)
+    assert(center)
+    assert(scale)
+
     if hms:dim() == 3 then hms = hms:view(1, hms:size(1), hms:size(2), hms:size(3)) end
 
-   -- -- Get locations of maximum activations (OLD CODE)
-   -- local max, idx = torch.max(hms:view(hms:size(1), hms:size(2), hms:size(3) * hms:size(4)), 3)
-   -- local preds = torch.repeatTensor(idx, 1, 1, 2):float()
-   -- preds[{{}, {}, 1}]:apply(function(x) return (x - 1) % hms:size(4) + 1 end)
-   -- preds[{{}, {}, 2}]:add(-1):div(hms:size(3)):floor():add(.5)
-
-    -- Get locations of maximum activations (using sub-pixel precision)
-    local max, idx = torch.max(hms:view(hms:size(1), hms:size(2), hms:size(3) * hms:size(4)), 3)
-    local coords_peak = torch.repeatTensor(idx, 1, 1, 2):float()
-    coords_peak[{{}, {}, 1}]:apply(function(x) return x % hms:size(4) end)
-    coords_peak[{{}, {}, 2}]:div(hms:size(3)):ceil()
-    local preds = fitParabolaAll(hms, coords_peak)
+    local preds
+    if opt.subpixel_precision then
+        -- Get locations of maximum activations (using sub-pixel precision)
+        local max, idx = torch.max(hms:view(hms:size(1), hms:size(2), hms:size(3) * hms:size(4)), 3)
+        local coords_peak = torch.repeatTensor(idx, 1, 1, 2):float()
+        coords_peak[{{}, {}, 1}]:apply(function(x) return x % hms:size(4) end)
+        coords_peak[{{}, {}, 2}]:div(hms:size(3)):ceil()
+        preds = fitParabolaAll(hms, coords_peak)
+    else
+        -- Get locations of maximum activations (OLD CODE)
+        local max, idx = torch.max(hms:view(hms:size(1), hms:size(2), hms:size(3) * hms:size(4)), 3)
+        preds = torch.repeatTensor(idx, 1, 1, 2):float()
+        preds[{{}, {}, 1}]:apply(function(x) return (x - 1) % hms:size(4) + 1 end)
+        preds[{{}, {}, 2}]:add(-1):div(hms:size(3)):floor():add(.5)
+    end
 
     -- Get transformed coordinates
     local preds_tf = torch.zeros(preds:size())
