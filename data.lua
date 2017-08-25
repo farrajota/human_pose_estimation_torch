@@ -42,9 +42,9 @@ local function loader_flic(set_name)
 
     -- data loader function
     local data_loader = function(idx)
-        local data = dbloader:object(set_name, idx, true)[1]
+        local data = dbloader:object(set_name, idx, true)
 
-        local filename = paths.concat(dbloader.data_dir, ascii2str(data[1])[1])
+        local filename = paths.concat(dbloader.data_dir, ascii2str(data[1]))
         local keypoints = data[3]:float()
         local torso_bbox = data[2]:float():squeeze()
         local center = torch.FloatTensor({(torso_bbox[1]+torso_bbox[3])/2,
@@ -83,10 +83,10 @@ local function loader_lsp(set_name)
 
     -- data loader function
     local data_loader = function(idx)
-        local data = dbloader:object(set_name, idx, true)[1]
+        local data = dbloader:object(set_name, idx, true)
 
-        local filename = paths.concat(dbloader.data_dir, ascii2str(data[1])[1])
-        local keypoints = data[2][1]
+        local filename = paths.concat(dbloader.data_dir, ascii2str(data[1]))
+        local keypoints = data[2]:float():squeeze()
         local kps_coords_x = keypoints:select(2,1)
         local kps_coords_y = keypoints:select(2,2)
         local kps_x=kps_coords_x[kps_coords_x:gt(0)]
@@ -129,13 +129,13 @@ local function loader_mpii(set_name)
 
     -- data loader function
     local data_loader = function(idx, flag_lsp)
-        local data = dbloader:object(set_name, idx, true)[1]
+        local data = dbloader:object(set_name, idx, true)
 
-        local filename = paths.concat(dbloader.data_dir,  ascii2str(data[1])[1])
-        local keypoints = data[5][1]
-        local head_coord = data[4][1]
-        local center = data[3][1]
-        local scale = data[2][1]
+        local filename = paths.concat(dbloader.data_dir,  ascii2str(data[1]))
+        local keypoints = data[5]:squeeze()
+        local head_coord = data[4]:squeeze()
+        local center = data[3]:squeeze()
+        local scale = data[2]:squeeze()
         local normalize = torch.FloatTensor({head_coord[3]-head_coord[1],
                                              head_coord[4]-head_coord[2]}):norm() * 0.6
 
