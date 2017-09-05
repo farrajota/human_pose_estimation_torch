@@ -85,9 +85,10 @@ local function Parse(arg)
     cmd:text(' ---------- Test options ---------------------------------------')
     cmd:text()
     cmd:option('-reprocess', "false",  'Utilize existing predictions from the model\'s folder.')
-    cmd:option('-threshold',      .2, 'PCKh threshold (default 0.5)')
+    cmd:option('-pck_threshold',  .2, 'PCKh threshold (default 0.5)')
     cmd:option('-predictions',     0, 'Generate a predictions file (0-false | 1-true)')
     cmd:option('-plotSave',   "true", 'Save plot to file (true/false)')
+    cmd:option('-test_load_best', "false", 'Use the best accuracy model for computing the test accuracy.')
     cmd:text()
     cmd:text(' ---------- Benchmark options --------------------------------------')
     cmd:text()
@@ -98,19 +99,11 @@ local function Parse(arg)
     cmd:option('-demo_nsamples',            5, 'Number of samples to display predictions.')
     cmd:option('-demo_plot_save',     'false', 'Save plots to disk.')
     cmd:option('-demo_plot_networks_predictions', 'false', 'Plot the heatmap results of all network outputs.')
+    cmd:option('-demo_plot_screen',    'true', 'Plot the results to the screen.')
     cmd:text()
 
 
     local opt = cmd:parse(arg or {})
-    opt.expDir = paths.concat(opt.expDir, opt.dataset)
-    opt.save = paths.concat(opt.expDir, opt.expID)
-    opt.ensemble = paths.concat(opt.expDir, opt.ensembleID)
-    if opt.loadModel == '' or opt.loadModel == 'none' then
-        opt.load = paths.concat(opt.save, 'model_final.t7')
-    else
-        opt.load = opt.loadModel
-        opt.save = paths.dirname(opt.loadModel)
-    end
 
     if not utils then
         utils = paths.dofile('util/utils.lua')
@@ -131,9 +124,26 @@ local function Parse(arg)
     opt.saveBest    = utils.Str2Bool(opt.saveBest)
     --opt.critweights = utils.Str2Bool(opt.critweights)
     opt.reprocess = utils.Str2Bool(opt.reprocess)
+    opt.subpixel_precision = utils.Str2Bool(opt.subpixel_precision)
+    opt.test_load_best = utils.Str2Bool(opt.test_load_best)
+
     opt.demo_plot_save = utils.Str2Bool(opt.demo_plot_save)
     opt.demo_plot_networks_predictions = utils.Str2Bool(opt.demo_plot_networks_predictions)
-    opt.subpixel_precision = utils.Str2Bool(opt.subpixel_precision)
+    opt.demo_plot_screen = utils.Str2Bool(opt.demo_plot_screen)
+
+    opt.expDir = paths.concat(opt.expDir, opt.dataset)
+    opt.save = paths.concat(opt.expDir, opt.expID)
+    opt.ensemble = paths.concat(opt.expDir, opt.ensembleID)
+    if opt.loadModel == '' or opt.loadModel == 'none' then
+        if opt.test_load_best then
+            opt.load = paths.concat(opt.save, 'best_model_accuracy.t7')
+        else
+            opt.load = paths.concat(opt.save, 'model_final.t7')
+        end
+    else
+        opt.load = opt.loadModel
+        opt.save = paths.dirname(opt.loadModel)
+    end
 
     return opt
 end
