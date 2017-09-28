@@ -5,10 +5,12 @@
 
 configs = {
     dataset = 'lsp+mpii',
-    expID = 'final-best',
-    demo_nsamples = 5,
+    expID = 'hg-generic8', --'final-best',
+    demo_nsamples = 100,
     demo_plot_save = 'true',
-    manualSeed = 2
+    manualSeed = 2,
+    demo_plot_screen = 'false',
+    test_load_best = 'true',
 }
 
 --[[ concatenate options fields to a string ]]

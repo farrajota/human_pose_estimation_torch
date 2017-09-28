@@ -8,7 +8,8 @@ configs = {
     expID = 'final-best',
     demo_nsamples = 5,
     demo_plot_save = 'true',
-    manualSeed = 2
+    manualSeed = 2,
+    demo_plot_screen = 'false',
 }
 
 --[[ concatenate options fields to a string ]]
