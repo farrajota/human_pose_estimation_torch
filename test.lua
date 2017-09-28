@@ -126,7 +126,8 @@ engine.hooks.onForward= function(state)
     local preds_hm, preds_img = getPredsBenchmark(output, center, scale)
 
     -- compute distances
-    table.insert(distances, calcDistsOne(preds_img:squeeze(), parts, normalize):totable())
+    local accuracy = calcDistsOne(preds_img:squeeze(), parts, normalize)
+    table.insert(distances, accuracy:totable())
 
     -- add coordinates to the coords tensor
     coords[{{},{},{state.t}}] = preds_img:transpose(2,3):squeeze()
@@ -136,7 +137,6 @@ end
 
 
 engine.hooks.onEnd= function(state)
-
     local labels = {'Validation'}
     local res = {}
     local dists = {torch.FloatTensor(distances):transpose(1,2)}
@@ -147,56 +147,60 @@ engine.hooks.onEnd= function(state)
     gnuplot.raw('set lmargin 3.2')
     gnuplot.raw('set rmargin 2')
     if opt.dataset=='mpii' then
-        gnuplot.raw(('set multiplot layout 2,3 title "%s Validation Set Performance (PCKh@%.1f)"'):format(string.upper(opt.dataset), opt.threshold))
+        gnuplot.raw(('set multiplot layout 2,3 title "%s Validation Set Performance (PCKh@%.1f)"'):format(string.upper(opt.dataset), opt.pck_threshold))
     else
-        gnuplot.raw(('set multiplot layout 2,3 title "%s Validation Set Performance (PCK@%.1f)"'):format(string.upper(opt.dataset), opt.threshold))
+        gnuplot.raw(('set multiplot layout 2,3 title "%s Validation Set Performance (PCK@%.1f)"'):format(string.upper(opt.dataset), opt.pck_threshold))
     end
 
     gnuplot.raw('set xtics font ",6"')
     gnuplot.raw('set ytics font ",6"')
 
+    print('')
+    print('-----------------------------------')
+    print('PCK@' .. opt.pck_threshold)
     if opt.dataset == 'mpii' then
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {9,10}, labels, 'Head', opt.threshold), 'Head'})
+        table.insert(res, {displayPCK(dists, {9,10}, labels, 'Head', opt.pck_threshold), 'Head'})
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {2,5}, labels, 'Knee', opt.threshold), 'Knee'})
+        table.insert(res, {displayPCK(dists, {2,5}, labels, 'Knee', opt.pck_threshold), 'Knee'})
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {1,6}, labels, 'Ankle', opt.threshold), 'Ankle'})
+        table.insert(res, {displayPCK(dists, {1,6}, labels, 'Ankle', opt.pck_threshold), 'Ankle'})
         print('-----------------------------------')
         gnuplot.raw('set tmargin 2.5')
         gnuplot.raw('set bmargin 1.5')
-        table.insert(res, {displayPCK(dists, {13,14}, labels, 'Shoulder', opt.threshold), 'Shoulder'})
+        table.insert(res, {displayPCK(dists, {13,14}, labels, 'Shoulder', opt.pck_threshold), 'Shoulder'})
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {12,15}, labels, 'Elbow', opt.threshold), 'Elbow'})
+        table.insert(res, {displayPCK(dists, {12,15}, labels, 'Elbow', opt.pck_threshold), 'Elbow'})
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {11,16}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
+        table.insert(res, {displayPCK(dists, {11,16}, labels, 'Wrist', opt.pck_threshold, true), 'Wrist'})
         print('-----------------------------------')
 
     elseif opt.dataset == 'flic' then
-        table.insert(res, {displayPCK(dists, {1,4}, labels, 'Shoulder', opt.threshold), 'Shoulder'})
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {2,5}, labels, 'Elbow', opt.threshold), 'Elbow'})
+        table.insert(res, {displayPCK(dists, {1,4}, labels, 'Shoulder', opt.pck_threshold), 'Shoulder'})
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {3,6}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
+        table.insert(res, {displayPCK(dists, {2,5}, labels, 'Elbow', opt.pck_threshold), 'Elbow'})
+        print('-----------------------------------')
+        table.insert(res, {displayPCK(dists, {3,6}, labels, 'Wrist', opt.pck_threshold, true), 'Wrist'})
         print('-----------------------------------')
 
     elseif opt.dataset == 'lsp' then
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {13,14}, labels, 'Head', opt.threshold), 'Head'})
+        table.insert(res, {displayPCK(dists, {13,14}, labels, 'Head', opt.pck_threshold), 'Head'})
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {3,4}, labels, 'Hip', opt.threshold), 'Hip'})
+        table.insert(res, {displayPCK(dists, {3,4}, labels, 'Hip', opt.pck_threshold), 'Hip'})
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {2,5}, labels, 'Knee', opt.threshold), 'Knee'})
+        table.insert(res, {displayPCK(dists, {2,5}, labels, 'Knee', opt.pck_threshold), 'Knee'})
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {1,6}, labels, 'Ankle', opt.threshold), 'Ankle'})
+        table.insert(res, {displayPCK(dists, {1,6}, labels, 'Ankle', opt.pck_threshold), 'Ankle'})
         print('-----------------------------------')
         gnuplot.raw('set tmargin 2.5')
         gnuplot.raw('set bmargin 1.5')
-        table.insert(res, {displayPCK(dists, {9,10}, labels, 'Shoulder', opt.threshold), 'Shoulder'})
+        table.insert(res, {displayPCK(dists, {9,10}, labels, 'Shoulder', opt.pck_threshold), 'Shoulder'})
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {8,11}, labels, 'Elbow', opt.threshold), 'Elbow'})
+        table.insert(res, {displayPCK(dists, {8,11}, labels, 'Elbow', opt.pck_threshold), 'Elbow'})
         print('-----------------------------------')
-        table.insert(res, {displayPCK(dists, {7,12}, labels, 'Wrist', opt.threshold, true), 'Wrist'})
+        table.insert(res, {displayPCK(dists, {7,12}, labels, 'Wrist', opt.pck_threshold, true), 'Wrist'})
         print('-----------------------------------')
     elseif opt.dataset == 'coco' then
         -- TODO
