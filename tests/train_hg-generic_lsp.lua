@@ -66,7 +66,7 @@ do
 
     local str_cuda
     if info.nGPU <= 1 then
-        str_cuda = 'CUDA_VISIBLE_DEVICES=1'
+        str_cuda = 'CUDA_VISIBLE_DEVICES=0'
     else
         str_cuda = 'CUDA_VISIBLE_DEVICES=1,0'
     end

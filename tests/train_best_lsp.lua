@@ -87,7 +87,7 @@ info = {
     nGPU = 2,
 }
 
---
+--[[
 -- train ensemble flic
 os.execute(('CUDA_VISIBLE_DEVICES=1,0 th train.lua -dataset lsp -expID %s -netType %s -ensembleID %s'..
     ' -nGPU %d -optMethod %s -nThreads %d -colourNorm %s -colourjit %s'..
@@ -101,4 +101,5 @@ os.execute(('CUDA_VISIBLE_DEVICES=1,0 th train.lua -dataset lsp -expID %s -netTy
         info.rotRate, info.nStack, info.nFeats, info.scale, info.batchSize
     )
 )
+]]
 --

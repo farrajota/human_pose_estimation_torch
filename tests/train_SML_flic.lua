@@ -26,7 +26,7 @@ end
 local info = {
 
     -- experiment id
-    expID = 'SML-test',
+    expID = 'SML-test2',
     netType = 'sml',
     dataset = 'flic',
 
@@ -40,24 +40,25 @@ local info = {
     critweights = 'none',
     scale = 0.30,
     rotate = 30,
-    rotRate = 0.2,
+    rotRate = 0.6,
 
     -- train options
     optMethod = 'adam',
     nThreads = 2,
-    trainIters = 1000,
+    trainIters = 2000,
     testIters = 500,
     nStack = 3,
     nFeats = 256,
-    schedule = "{{30,2.5e-4,0},{10,1e-4,0},{10,5e-5,0}}",
-    batchSize = 4,
+    schedule = "{{50,2.5e-4,0},{15,1e-4,0},{10,5e-5,0}}",
+    batchSize = 2,
     snapshot = 10,
-    nGPU = 2,
+    nGPU = 1,
     saveBest = 'true',
     continue = 'false',
+    clear_buffers = 'true',
 
     inputRes = 256,
-    outputRes = 256,
+    outputRes = 64,
 }
 
  -- concatenate options fields to a string
@@ -68,7 +69,7 @@ end
 
 local str_cuda
 if info.nGPU <= 1 then
-    str_cuda = 'CUDA_VISIBLE_DEVICES=1'
+    str_cuda = 'CUDA_VISIBLE_DEVICES=0'
 else
     str_cuda = 'CUDA_VISIBLE_DEVICES=1,0'
 end
