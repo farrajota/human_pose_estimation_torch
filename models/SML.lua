@@ -298,9 +298,9 @@ local function createModel()
     local out_l_2 = nn.SpatialConvolution(outputDim[1][1]*2,outputDim[1][1],1,1,1,1,0,0)(cat_l_out)
 
     -- Final model
-    local out_s_u = nn.SpatialUpSamplingBilinear(4)(out_s)
-    local out_m_u = nn.SpatialUpSamplingBilinear(4)(out_m_2)
-    local out_l_u = nn.SpatialUpSamplingBilinear(4)(out_l_2)
+    local out_s_u = nn.Identity()(out_s)  -- nn.SpatialUpSamplingBilinear(4)(out_s)
+    local out_m_u = nn.Identity()(out_m_2)  -- nn.SpatialUpSamplingBilinear(4)(out_m_2)
+    local out_l_u = nn.Identity()(out_l_2)  -- nn.SpatialUpSamplingBilinear(4)(out_l_2)
 
     beautify_modules({
         ae_small = autoencoder_s_out,
@@ -309,7 +309,7 @@ local function createModel()
         lin = {l1_s, l2_s,
                l1_m, l2_m,
                l1_l, l2_l},
-        out = {out_s, out_m, out_l}
+        out = {out_s, out_m_2, out_l_2},
         upsample = {out_s_u, out_m_u, out_l_u}
     })
 
