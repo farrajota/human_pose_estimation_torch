@@ -93,6 +93,18 @@ function transform(pt, center, scale, rot, res, invert)
     return new_point:int():add(1)
 end
 
+function transformBenchmark(pt, center, scale, rot, res, invert)
+    local pt_ = torch.ones(3)
+    pt_[1] = pt[1]
+    pt_[2] = pt[2]
+    local t = getTransform(center, scale, rot, res)
+    if invert then
+        t = torch.inverse(t)
+    end
+    local new_point = (t*pt_):sub(1,2):int()
+    return new_point
+end
+
 function transformPreds(coords, center, scale, res)
     local origDims = coords:size()
     coords = coords:view(-1,2)
@@ -103,6 +115,7 @@ function transformPreds(coords, center, scale, res)
     return newCoords:view(origDims)
 end
 
+--[[
 function mytransform(pt, center, scale, rot, res, invert)
     local pt_ = torch.ones(3)
     pt_[1],pt_[2] = pt[1],pt[2]
@@ -146,6 +159,20 @@ function mytransform(pt, center, scale, rot, res, invert)
     -- process transformation
     local new_point = (t*pt_):sub(1,2)
 
+    return new_point
+end
+--]]
+
+
+function mytransform(pt, center, scale, rot, res, invert)
+    local pt_ = torch.ones(3)
+    pt_[1] = pt[1]
+    pt_[2] = pt[2]
+    local t = getTransform(center, scale, rot, res)
+    if invert then
+        t = torch.inverse(t)
+    end
+    local new_point = (t*pt_):sub(1,2)
     return new_point
 end
 
