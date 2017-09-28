@@ -66,9 +66,10 @@ local loader = data_loader[mode]
 -- alloc memory in the gpu for faster data transfer
 local input = torch.Tensor(1, 3, opt.inputRes, opt.inputRes); input=cast(input)
 
+local randperm = torch.randperm(loader.size)
 for i = 1,opt.demo_nsamples do
     -- get random image
-    local idx = torch.random(1, loader.size) -- get random idx
+    local idx = randperm[i] --torch.random(1, loader.size) -- get random idx
     local im, center, scale, _ = getSampleBenchmark(loader, idx)
 
     -- process body joint predictions
@@ -98,10 +99,12 @@ for i = 1,opt.demo_nsamples do
         table.insert(heatmaps_disp, image.crop(image.scale(heatmaps[i], opt.inputRes),x1,y1,x2,y2))
     end
 
-    if pcall(require, 'qt') then
-        image.display({image = heatmaps_disp, title='heatmaps_image_'..i})
-    else
-        display.image(heatmaps_disp, {title='heatmaps_image_'..i})
+    if opt.demo_plot_screen then
+        if pcall(require, 'qt') then
+            image.display({image = heatmaps_disp, title='heatmaps_image_'..i})
+        else
+            display.image(heatmaps_disp, {title='heatmaps_image_'..i})
+        end
     end
 
 
@@ -115,28 +118,40 @@ for i = 1,opt.demo_nsamples do
             table.insert(ae_outputs, image.crop(ae_heatmap_color,x1,y1,x2,y2))
         end
 
-        if pcall(require, 'qt') then
-            image.display({image = ae_outputs, title='auto-encoders outputs heatmaps_image_'..i})
-        else
-            display.image(ae_outputs, {title='auto-encoders outputs heatmaps_image_'..i})
+        if opt.demo_plot_screen then
+            if pcall(require, 'qt') then
+                image.display({image = ae_outputs, title='auto-encoders outputs heatmaps_image_'..i})
+            else
+                display.image(ae_outputs, {title='auto-encoders outputs heatmaps_image_'..i})
+            end
         end
     end
 
 
     if opt.demo_plot_save then
-        if not paths.dirp(paths.concat(opt.save, 'plot')) then
-            print('Saving plots to: ' .. paths.concat(opt.save, 'plot'))
-            os.execute('mkdir -p ' .. paths.concat(opt.save, 'plot'))
+        local plot_dir = 'image_plots'
+        if not paths.dirp(paths.concat(opt.save, plot_dir)) then
+            print('Saving plots to: ' .. paths.concat(opt.save, plot_dir))
+            os.execute('mkdir -p ' .. paths.concat(opt.save, plot_dir))
         end
-        image.save(paths.concat(opt.save, 'plot','sample_' .. idx..'.png'), image.crop(im, x1, y1, x2, y2))
-        image.save(paths.concat(opt.save, 'plot','sample_' .. idx..'_skeleton.png'), image.crop(skeliImg, x1, y1, x2, y2))
+        if not paths.dirp(paths.concat(opt.save, plot_dir, 'skeletons_all')) then
+            print('Saving plots to: ' .. paths.concat(opt.save, plot_dir, 'skeletons_all'))
+            os.execute('mkdir -p ' .. paths.concat(opt.save, plot_dir, 'skeletons_all'))
+        end
+        if not paths.dirp(paths.concat(opt.save, plot_dir, idx)) then
+            print('Saving plots to: ' .. paths.concat(opt.save, plot_dir, idx))
+            os.execute('mkdir -p ' .. paths.concat(opt.save, plot_dir, idx))
+        end
+        image.save(paths.concat(opt.save, plot_dir, idx, 'image.png'), image.crop(im, x1, y1, x2, y2))
+        image.save(paths.concat(opt.save, plot_dir,idx, 'skeleton.png'), image.crop(skeliImg, x1, y1, x2, y2))
+        image.save(paths.concat(opt.save, plot_dir, 'skeletons_all', 'skeleton_'..idx..'.png'), image.crop(skeliImg, x1, y1, x2, y2))
         for j=2, #heatmaps_disp do
-            image.save(paths.concat(opt.save, 'plot', 'sample_'.. idx..'_heatmap_'..(j-1)..'.png'), heatmaps_disp[j])
+            image.save(paths.concat(opt.save, plot_dir, idx, 'heatmap_'..(j-1)..'.png'), heatmaps_disp[j])
         end
 
         if opt.demo_plot_networks_predictions then
             for j=2, #ae_outputs do
-                image.save(paths.concat(opt.save, 'plot', 'sample_'.. idx..'_AE_'..(j-1)..'.png'), ae_outputs[j])
+                image.save(paths.concat(opt.save, plot_dir, idx, 'AE_'..(j-1)..'.png'), ae_outputs[j])
             end
         end
     end
