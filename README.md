@@ -194,7 +194,7 @@ Due to problems in cleaning temporary buffers (grad/output buffers) with `:clear
 
 ## License
 
-MIT license (see the LICENSE file)
+MIT license (see the [LICENSE](LICENSE.md) file)
 
 
 ## Acknowledgements
