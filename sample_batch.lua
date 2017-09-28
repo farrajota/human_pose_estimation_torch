@@ -44,7 +44,12 @@ function transform_data(img, keypoints, center, scale, nJoints)
     local kps_transform = torch.FloatTensor(nJoints, 2):fill(0)
     for i = 1, nJoints do
         if keypoints[i][1] > 1 then -- Checks that there is a ground truth annotation
-            local new_kp = transform(keypoints[i], center, scale, rot, opt.outputRes)
+            local new_kp
+            if opt.subpixel_precision then
+                new_kp = transform(keypoints[i], center, scale, rot, opt.outputRes)
+            else
+                new_kp = mytransform(keypoints[i], center, scale, rot, opt.outputRes)
+            end
             drawGaussian(heatmap[i], new_kp, opt.hmGauss)
             kps_transform[i] = new_kp
         end
@@ -87,8 +92,11 @@ function transform_data_test(img, keypoints, center, scale, nJoints)
     local heatmap = torch.zeros(nJoints, opt.outputRes, opt.outputRes)
     for i = 1, nJoints do
         if keypoints[i][1] > 1 then -- Checks that there is a ground truth annotation
-            --drawGaussian(heatmap[i], mytransform(torch.add(keypoints[i],1), c, s, r, opt.outputRes), 1)
-            drawGaussian(heatmap[i], mytransform(keypoints[i], center, scale, rot, opt.outputRes), opt.hmGauss or 1)
+            if opt.subpixel_precision then
+                drawGaussian(heatmap[i], transform(keypoints[i], center, scale, rot, opt.outputRes), opt.hmGauss or 1)
+            else
+                drawGaussian(heatmap[i], mytransform(keypoints[i], center, scale, rot, opt.outputRes), opt.hmGauss or 1)
+            end
         end
     end
 
@@ -198,7 +206,11 @@ function getSampleTest(data_loader, idx)
     for i = 1,nJoints do
         -- Checks that there is a ground truth annotation
         if keypoints[i][1] > 1 then
-            drawGaussian(heatmap[i], mytransform(keypoints[i], center, scale, rot, opt.outputRes), opt.hmGauss or 1)
+            if opt.subpixel_precision then
+                drawGaussian(heatmap[i], transform(keypoints[i], center, scale, rot, opt.outputRes), opt.hmGauss or 1)
+            else
+                drawGaussian(heatmap[i], mytransform(keypoints[i], center, scale, rot, opt.outputRes), opt.hmGauss or 1)
+            end
         end
     end
 
