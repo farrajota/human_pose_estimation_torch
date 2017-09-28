@@ -1,6 +1,6 @@
 # Human Body Joints estimation for torch7
 
-Train and test a human body joints estimator network using Lua/Torch7 for single humans on a single image. This method is a modified version of the original [hourglass networks](https://github.com/anewell/pose-hg-train). For more information see our paper (**TODO: insert link to the paper.**)
+Train and test a human body joints estimator network using Lua/Torch7 for single humans on a single image. This method is a modified version of the original [hourglass networks](https://github.com/anewell/pose-hg-train). For more information see our [paper](https://link.springer.com/chapter/10.1007/978-3-319-58838-4_15).
 
 This code provides an easy way to train a network on a variety of datasets, all available through the `dbcollection` package. The available datasets for train/test/benchmark are the following:
 
@@ -23,7 +23,7 @@ The network model used here for human body joint estimation is an enhanced versi
 - more data augmentation (more rotation, scaling, colour jittering)
 - use of wider feature maps (more kernels) as the image resolution decreases
 - replaced rmsprop optimization with [adam](https://arxiv.org/abs/1412.6980)
-- additional tweaks to the basic auto-encoder network (**TODO: add representative figure.**)
+- additional tweaks to the basic auto-encoder network
 
 
 
@@ -76,10 +76,10 @@ To run the code in this repository you'll need the following resources:
 
 - [Torch7](http://torch.ch/docs/getting-started.html)
 - Matlab >= 2012a (for running the benchmark code)
-- Python >= 2.7 or >= 3.5 (for using  [dbcollection](https://github.com/farrajota/dbcollection))
-- NVIDIA GPU with compute capability 3.5+ (10GB+ ram or two 6GB+ ram GPUs)
+- Python >= 2.7 or >= 3.5 (for [dbcollection](https://github.com/farrajota/dbcollection))
+- NVIDIA GPU with compute capability 3.5+ (12GB+ ram or two 6GB+ ram GPUs)
 
-> Note: Here we used two 6GB ram GPUs to train the network. When using this code, we recommend, at least, one GPU with 6GB ram for inference and one 12GB ram GPU for training a model.
+> Note: Here we used two 6GB GPUs to train the network. We recommend, at least, one GPU with 6GB ram for inference and one 12GB ram GPU for training the model.
 
 Also, you'll need to install the following packages:
 
@@ -118,18 +118,17 @@ cd APIs/lua && luarocks make
 
 #### Data setup
 
-`dbcollection` contains the data annotations necessary to run this code. If the data is not setup, this package will download, extract and process the data annotations to disk. To specify where to store the downloaded/extracted data use the `-data_dir=<path>`. If left empty, and the data will be stored in `~/dbcollection/<dataset>/data/`.
+`dbcollection` contains the data annotations necessary to run this code. If the data is not setup, this package will download, extract and preprocess the data annotations and store them to disk. To specify where to store the downloaded/extracted data use the `-data_dir=<path>`. If left empty, and the data will be stored in `~/dbcollection/<dataset>/data/`.
 
-For more information on how to setup a dataset see the [dbcollection](https://github.com/farrajota/dbcollection) repo.
+For more information on how to setup a dataset see the [dbcollection](https://github.com/dbcollection/dbcollection) repo.
 
 
 ## Getting started
 
-
-After installing the necessary requirements, it is advised to setup the necessary data before proceeding. Since the code uses `dbcollection` for managing datasets, downloading/setting up the data folders is best if you desire to specify the dataset's directory manually. Then, to start training a network simply do `th train.lua -expID <net_name>`. To use a specific dataset, for example FLIC, specify the `-dataset` input arg when running the script `th train.lua -expID <net_name> -dataset flic`.
-
+After installing the necessary requirements, it is advised to setup the necessary data before proceeding. Since the code uses `dbcollection` for managing datasets, downloading/setting up the data folders first is best if you desire to specify the dataset's directory manually. Then, to start training a network simply do `th train.lua -expID <net_name>`. To use a specific dataset, for example FLIC, specify the `-dataset` input arg when running the script `th train.lua -expID <net_name> -dataset flic`.
 
 Most of the command line options are pretty self-explanatory, and can be found in `options.lua`. The `-expID` option will be used to save important information in a directory like `pose-torchnet/exp/<dataset>/<expID>/`. This directory will include snapshots of the trained model, training/validations logs with loss and accuracy information, and other details of the options set for that particular experiment.
+
 
 ### Download/Setting up this repo
 
@@ -140,6 +139,7 @@ git clone --recursive https://github.com/farrajota/human_pose_estimation_torch
 ```
 
 If you clone the repo into a different directory, please make sure you modify `projectdir.lua` and point to the new path before using the code.
+
 
 ### Training a model
 
@@ -157,6 +157,7 @@ To benchmark a trained model on the FLIC or LSP datasets run `th benchmark.lua  
 
 Furthermore, for the FLIC and LSP datasets, this repo provides a comparison with other methods for body joint prediction whose predictions are made available online ([lsp results are available here](http://human-pose.mpi-inf.mpg.de/#related_benchmarks); for FLIC results I had to manually search some of them on github). To evaluate on the MPII and COCO datasets you will need to use their evaluation servers if you want to compare the results with other methods.
 
+
 ### Additional information
 
 #### Accuracy metric
@@ -168,6 +169,28 @@ For convenience during training, the accuracy function evaluates the PCK metric 
 
 Due to problems in cleaning temporary buffers (grad/output buffers) with `:clearState()`, in order to store models to disk, this option is hidden behind an input flag. For our setup, using `:clearState()` with the GPUs memory almost maxed out, this would cause crashes due to insufficient memory when re-populating the buffers. In case of training networks that are smaller or have less parameters this should not be an issue (or if you have a GPU with 12GB+ ram).
 
+
+## Cite this paper
+
+```
+@Inbook{Farrajota2017,
+    author="Farrajota, M.
+    and Rodrigues, Jo{\~a}o M. F.
+    and du Buf, J. M. H.",
+    editor="Alexandre, Lu{\'i}s A.
+    and Salvador S{\'a}nchez, Jos{\'e}
+    and Rodrigues, Jo{\~a}o M. F.",
+    title="Human Pose Estimation by a Series of Residual Auto-Encoders",
+    bookTitle="Pattern Recognition and Image Analysis: 8th Iberian Conference, IbPRIA 2017,  Faro, Portugal, June 20-23, 2017, Proceedings",
+    year="2017",
+    publisher="Springer International Publishing",
+    address="Cham",
+    pages="131--139",
+    isbn="978-3-319-58838-4",
+    doi="10.1007/978-3-319-58838-4_15",
+    url="https://doi.org/10.1007/978-3-319-58838-4_15"
+}
+```
 
 ## License
 
