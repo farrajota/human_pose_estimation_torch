@@ -11,6 +11,7 @@ model_list['hg-generic-ensemble'] = paths.dofile('hg-generic-ensemble.lua')  -- 
 model_list['hg-stacked']          = paths.dofile('hg-stacked.lua')
 model_list['hg-stacked-no-int']   = paths.dofile('hg-stacked-no-int.lua')
 model_list['hg-generic']          = paths.dofile('hg-generic.lua')
+model_list['stacked-aes-ensemble']= paths.dofile('stacked_AEs_ensemble.lua')  -- SML net
 model_list['sml']                 = paths.dofile('SML.lua')  -- SML net
 
 return model_list
