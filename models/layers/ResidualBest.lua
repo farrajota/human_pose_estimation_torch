@@ -5,6 +5,8 @@ local relu = nn.RReLU
 -- Main convolutional block
 local function convBlock(numIn,numOut)
     return nn.Sequential()
+        :add(batchnorm(numIn))
+        :add(relu())
         :add(conv(numIn,numOut/2,1,1))
         :add(batchnorm(numOut/2))
         :add(relu())
@@ -13,7 +15,6 @@ local function convBlock(numIn,numOut)
         :add(batchnorm(numOut/2))
         :add(relu())
         :add(conv(numOut/2,numOut,1,1))
-        :add(batchnorm(numOut))
 end
 
 -- Skip layer
@@ -23,7 +24,6 @@ local function skipLayer(numIn,numOut)
     else
         return nn.Sequential()
             :add(conv(numIn,numOut,1,1))
-            :add(batchnorm(numOut))
     end
 end
 
@@ -34,6 +34,5 @@ function Residual(numIn,numOut)
             :add(convBlock(numIn,numOut))
             :add(skipLayer(numIn,numOut)))
         :add(nn.CAddTable(true))
-        :add(relu())
 end
 
